@@ -44,8 +44,9 @@
 
 ---
 - name: Install and Configure Docker
-  become: yes
+  become: true
   hosts: reservations
+  gather_facts: true  # Ensure facts are gathered
   vars:
     has_nvidia: false  # Default value, overridden dynamically if GPU is found
 
