@@ -8,7 +8,7 @@
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
-    - "../group_vars/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
+    - "../group_vars/os/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
   tasks:
     - name: Include system checks
       include_tasks: "{{ lookup('first_found', possible_files) }}"
