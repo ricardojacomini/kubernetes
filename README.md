@@ -43,7 +43,12 @@ or
 git clone https://github.com/your-repo/gpu-kubernetes-ansible.git
 cd gpu-kubernetes-ansible 
 
-# Then run:
+# Then
+
+# First Install the required callback plugin
+ansible-galaxy collection install ansible.posix
+
+# run
 ansible-playbook -i inventory.ini playbooks/site.yml
 ```
 
