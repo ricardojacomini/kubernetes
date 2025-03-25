@@ -70,6 +70,12 @@
         exclude: "opensm-libs,libibverbs,ucx,perftest,openmpi,ucx-rdmacm,ucx-ib,ucx-devel,ucx-cma"
       when: ansible_distribution == 'Rocky'
 
+    - name: create directory for Containerd modules
+      file:
+        path: /etc/modules-load.d
+        state: directory
+        mode: '0755'
+
     - name: configure modules for Containerd
       blockinfile:
         path: /etc/modules-load.d/containerd.conf
