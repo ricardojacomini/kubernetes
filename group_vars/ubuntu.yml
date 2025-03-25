@@ -1,3 +1,5 @@
+# group_vars/ubuntu.yml
+
 ---
 # Ubuntu specific variables
 docker_packages:

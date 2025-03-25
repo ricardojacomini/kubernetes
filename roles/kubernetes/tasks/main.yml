@@ -1,14 +1,27 @@
+# roles/kubernetes/tasks/main.yml
 ---
-- name: Include base Kubernetes tasks
-  include_tasks: base.yml
-  tags: kubernetes
+- name: Install Kubernetes packages
+  include_tasks: install.yml
+  tags: [kubernetes, install]
 
-- name: Configure master node
+- name: Configure kubelet
+  include_tasks: kubelet.yml
+  tags: [kubernetes, config]
+
+- name: Initialize control plane (masters)
   include_tasks: master.yml
   when: "'master' in group_names"
-  tags: master
+  tags: [kubernetes, master]
 
-- name: Configure worker node
+- name: Join worker nodes
   include_tasks: worker.yml
   when: "'workers' in group_names"
-  tags: worker
+  tags: [kubernetes, worker]
+
+- name: Configure network plugin
+  include_tasks: network.yml
+  tags: [kubernetes, network]
+
+- name: Validate cluster
+  include_tasks: validate.yml
+  tags: [kubernetes, validate]

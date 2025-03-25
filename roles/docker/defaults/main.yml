@@ -1,3 +1,4 @@
+# roles/docker/defaults/main.yml
 ---
 # Docker version and components
 docker_version: "24.0"  # Default version (will use latest 24.0.x)

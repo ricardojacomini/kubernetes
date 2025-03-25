@@ -1,3 +1,4 @@
+# roles/nvidia/tasks/install.yml
 ---
 - name: Install NVIDIA packages (Ubuntu)
   apt:

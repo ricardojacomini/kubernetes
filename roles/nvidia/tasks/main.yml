@@ -1,32 +1,35 @@
+# roles/nvidia/vars/main.yml
 ---
-- name: Verify NVIDIA GPU presence
+- name: Verify NVIDIA hardware
   command: lspci | grep -i nvidia
-  register: nvidia_gpu_check
+  register: nvidia_hw
   changed_when: false
-  failed_when: false
-  tags: nvidia,verify
+  tags: [nvidia, verify]
 
-- name: Set NVIDIA GPU fact
-  set_fact:
-    has_nvidia_gpu: "{{ nvidia_gpu_check.rc == 0 }}"
-  tags: nvidia,verify
-
-- name: Include repository setup
+- name: Add NVIDIA repository
   include_tasks: repos.yml
-  when: has_nvidia_gpu
-  tags: nvidia,repos
+  when: nvidia_hw.stdout != ""
+  tags: [nvidia, repos]
 
-- name: Install NVIDIA packages
-  include_tasks: install.yml
-  when: has_nvidia_gpu
-  tags: nvidia,install
+- name: Install NVIDIA drivers
+  include_tasks: drivers.yml
+  when: nvidia_hw.stdout != ""
+  tags: [nvidia, drivers]
 
 - name: Configure container runtime
   include_tasks: runtime.yml
-  when: has_nvidia_gpu
-  tags: nvidia,runtime
+  when: nvidia_hw.stdout != ""
+  tags: [nvidia, runtime]
+
+- name: Enable MIG (if configured)
+  include_tasks: mig.yml
+  when: 
+    - nvidia_hw.stdout != ""
+    - nvidia_mig.enabled | default(false) | bool
+  tags: [nvidia, mig]
 
 - name: Validate NVIDIA setup
   include_tasks: validate.yml
-  when: has_nvidia_gpu
-  tags: nvidia,validate
+  when: nvidia_hw.stdout != ""
+  tags: [nvidia, validate]
+  

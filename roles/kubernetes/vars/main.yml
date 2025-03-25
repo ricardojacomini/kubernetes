@@ -1,3 +1,4 @@
+# roles/kubernetes/vars/main.yml
 ---
 # Kubernetes Core Components
 k8s_version: "1.28.0"
@@ -75,3 +76,24 @@ system_reserved:
   cpu: "500m"
   memory: "500Mi"
   ephemeral-storage: "1Gi"
+
+  # Add these new variables:
+kubelet_extra_args:
+  - "--feature-gates=DevicePlugins=true"
+  - "--allowed-unsafe-sysctls=net.core.somaxconn"
+
+# Enhanced network plugin configuration
+network_plugins:
+  flannel:
+    manifest: "https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml"
+    requirements: []
+    config: |
+      {
+        "Network": "{{ pod_network_cidr }}",
+        "Backend": {"Type": "vxlan"}
+      }
+  calico:
+    manifest: "https://docs.projectcalico.org/manifests/calico.yaml"
+    requirements:
+      - "ipset"
+      - "iptables"

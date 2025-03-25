@@ -1,3 +1,4 @@
+# roles/common/tasks/kernel.yml
 ---
 - name: Ensure modules directory exists
   file:

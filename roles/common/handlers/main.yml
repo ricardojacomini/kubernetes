@@ -1,53 +1,30 @@
+# roles/common/handlers/main.yml
 ---
-- name: load kernel modules
-  command: modprobe -a {{ kernel_modules | join(' ') }}
-  when: not ansible_check_mode
-  listen: "kernel modules changed"
-
-- name: reload sysctl
-  command: sysctl --system
-  when: not ansible_check_mode
-  listen: "sysctl changes"
-
-- name: restart containerd
-  systemd:
-    name: containerd
-    state: restarted
-    enabled: yes
-    daemon_reload: yes
-  listen: "containerd configuration changed"
-
-- name: reboot system
-  reboot:
-    msg: "Reboot required by Ansible"
-    connect_timeout: 5
-    reboot_timeout: 600
-    pre_reboot_delay: 0
-    post_reboot_delay: 30
-  listen: "system reboot required"
-
-- name: update package cache
-  apt:
-    update_cache: yes
-  when: ansible_distribution == 'Ubuntu'
-  listen: "apt repository changed"
-
-- name: rebuild yum cache
-  yum:
-    name: '*'
-    update_cache: yes
-  when: ansible_distribution == 'Rocky'
-  listen: "yum repository changed"
-
-- name: apply network changes
+- name: system handlers
   block:
-    - name: flush network interfaces
-      command: nmcli connection reload
-      when: ansible_os_family == 'RedHat'
-    
-    - name: restart network
-      service:
-        name: networking
+    - name: load kernel modules
+      command: modprobe -a {{ kernel_modules | join(' ') }}
+      register: modprobe_result
+      failed_when: modprobe_result.rc != 0 and "'Module not found' not in modprobe_result.stderr"
+      changed_when: modprobe_result.rc == 0
+      listen: "kernel modules changed"
+
+    - name: reload sysctl
+      command: sysctl --system
+      register: sysctl_result
+      failed_when: sysctl_result.rc != 0
+      changed_when: "'applied' in sysctl_result.stdout"
+      listen: "sysctl changes"
+
+    - name: restart containerd
+      systemd:
+        name: containerd
         state: restarted
-      when: ansible_os_family == 'Debian'
-  listen: "network configuration changed"
+        enabled: yes
+        daemon_reload: yes
+      listen: "containerd configuration changed"
+
+  rescue:
+    - name: Handler failure notification
+      debug:
+        msg: "Handler failed: {{ ansible_failed_task.name }}"

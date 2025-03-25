@@ -1,3 +1,4 @@
+# roles/common/tasks/repos.yml
 ---
 - name: Configure Docker repository (Ubuntu)
   block:

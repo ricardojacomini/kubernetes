@@ -1,3 +1,9 @@
 # group_vars/monitoring.yml
-nvidia_dcgm_enabled: true
-nvidia_dcgm_exporter_enabled: true
+# group_vars/monitoring.yml
+---
+monitoring_stack:
+  nvidia:
+    dcgm: true
+    dcgm_exporter: true
+    prometheus: true
+    grafana: true

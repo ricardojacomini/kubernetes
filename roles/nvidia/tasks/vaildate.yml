@@ -1,21 +1,19 @@
+# roles/nvidia/tasks/validate.yml
 ---
-- name: Verify NVIDIA drivers
-  command: nvidia-smi
-  register: nvidia_smi
+- name: Verify Kubernetes GPU support
+  command: kubectl get nodes -o jsonpath='{.items[*].status.allocatable.nvidia\.com/gpu}'
+  register: k8s_gpu
   changed_when: false
-  tags: nvidia,validate
 
-- name: Verify container runtime
-  command: nvidia-container-runtime --version
-  register: nvidia_runtime
+- name: Verify MIG configuration
+  command: nvidia-smi mig -lgi
+  when: nvidia_mig_enabled | bool
+  register: mig_status
   changed_when: false
-  tags: nvidia,validate
 
-- name: Show GPU information
+- name: Show validation summary
   debug:
     msg: |
-      NVIDIA Drivers:
-      {{ nvidia_smi.stdout_lines[0] }}
-      {{ nvidia_smi.stdout_lines[1] }}
-      Container Runtime: {{ nvidia_runtime.stdout }}
-  tags: nvidia,validate
+      Kubernetes GPU Allocation: {{ k8s_gpu.stdout }}
+      MIG Status: {{ mig_status.stdout if mig_status is defined else 'Disabled' }}
+      Driver Version: {{ nvidia_smi.stdout_lines[2] }}

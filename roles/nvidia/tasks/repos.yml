@@ -1,3 +1,4 @@
+# roles/nvidia/tasks/repos.yml
 ---
 - name: Add NVIDIA repository (Ubuntu)
   apt_repository:

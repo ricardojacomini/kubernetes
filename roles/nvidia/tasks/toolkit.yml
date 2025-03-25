@@ -1,22 +1,99 @@
+# roles/nvidia/tasks/toolkit.yml
+# roles/nvidia/tasks/toolkit.yml
 ---
-- name: Add NVIDIA repository (Ubuntu)
-  apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$(ARCH) /"
-    filename: nvidia-container-toolkit
-  when: ansible_distribution == 'Ubuntu'
+- name: Validate NVIDIA repository requirements
+  block:
+    - name: Ensure GPG key directory exists (Ubuntu)
+      file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: 0755
+      when: ansible_distribution == 'Ubuntu'
+      tags: nvidia,toolkit
 
-- name: Install NVIDIA toolkit (Ubuntu)
-  apt:
-    name: nvidia-container-toolkit
-    state: present
-  when: ansible_distribution == 'Ubuntu'
+    - name: Download NVIDIA GPG key (Ubuntu)
+      apt_key:
+        url: "https://nvidia.github.io/libnvidia-container/gpgkey"
+        keyring: "/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg"
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+      tags: nvidia,toolkit
 
-- name: Add NVIDIA repository (Rocky)
-  yum_repository:
-    name: nvidia-container-toolkit
-    description: NVIDIA Container Toolkit
-    baseurl: https://nvidia.github.io/libnvidia-container/stable/rhel$releasever/$basearch
-    gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey
-    gpgcheck: true
-    enabled: true
-  when: ansible_distribution == 'Rocky'
+  rescue:
+    - name: Notify about repository setup failure
+      debug:
+        msg: "Failed to setup NVIDIA repository prerequisites"
+      tags: nvidia,toolkit
+
+- name: Configure NVIDIA repositories
+  block:
+    - name: Add NVIDIA repository (Ubuntu)
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/${{ 'ARCH' | env }} /"
+        filename: nvidia-container-toolkit
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+      register: ubuntu_repo
+      tags: nvidia,toolkit
+
+    - name: Add NVIDIA repository (Rocky)
+      yum_repository:
+        name: nvidia-container-toolkit
+        description: NVIDIA Container Toolkit
+        baseurl: "https://nvidia.github.io/libnvidia-container/stable/rhel{{ ansible_distribution_major_version }}/$basearch"
+        gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey
+        gpgcheck: true
+        enabled: true
+        state: present
+      when: ansible_distribution == 'Rocky'
+      register: rocky_repo
+      tags: nvidia,toolkit
+
+  rescue:
+    - name: Notify about repository configuration failure
+      debug:
+        msg: "Failed to configure NVIDIA repository"
+      tags: nvidia,toolkit
+
+- name: Install NVIDIA container toolkit
+  block:
+    - name: Install NVIDIA toolkit (Ubuntu)
+      apt:
+        name: 
+          - nvidia-container-toolkit
+          - nvidia-container-runtime
+        state: present
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+      tags: nvidia,toolkit
+
+    - name: Install NVIDIA toolkit (Rocky)
+      yum:
+        name:
+          - nvidia-container-toolkit
+          - nvidia-container-runtime
+        state: present
+        enablerepo: nvidia-container-toolkit
+      when: ansible_distribution == 'Rocky'
+      tags: nvidia,toolkit
+
+    - name: Verify toolkit installation
+      command: nvidia-container-toolkit --version
+      register: toolkit_version
+      changed_when: false
+      tags: nvidia,toolkit
+
+    - name: Display toolkit version
+      debug:
+        msg: "Installed NVIDIA Container Toolkit version: {{ toolkit_version.stdout }}"
+      tags: nvidia,toolkit
+
+  rescue:
+    - name: Notify about installation failure
+      debug:
+        msg: "Failed to install NVIDIA container toolkit"
+      tags: nvidia,toolkit
+
+- name: Configure container runtime
+  include_tasks: runtime.yml
+  tags: nvidia,runtime

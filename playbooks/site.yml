@@ -1,19 +1,34 @@
+# playbooks/site.yml
+# Define the master playbook that orchestrates the deployment of the Kubernetes cluster.
+# ---
+
 ---
-# playbooks/site.yml - Master Playbook
+# playbooks/site.yml
+
+- name: Preflight checks and system preparation
+  hosts: reservations
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/os/{{ ansible_distribution | lower }}.yml
+  tasks:
+    - name: Validate system requirements
+      include_tasks: ../roles/common/tasks/preflight.yml
+      tags: prerequisites
+
 - name: Configure infrastructure foundation
   hosts: reservations
-  gather_facts: yes
   vars_files:
     - ../group_vars/all.yml
     - ../group_vars/os/{{ ansible_distribution | lower }}.yml
   roles:
     - role: common
-      tags: prerequisites
+      tags: [common, system]
     - role: docker
-      tags: container_runtime
+      tags: [docker, container_runtime]
     - role: nvidia
       when: "'gpu' in group_names"
-      tags: gpu
+      tags: [gpu, nvidia]
 
 - name: Deploy Kubernetes cluster
   hosts: reservations
@@ -21,14 +36,21 @@
     - ../group_vars/k8s-cluster.yml
   roles:
     - role: kubernetes
-      tags: kubernetes
+      tags: [kubernetes, cluster]
   tasks:
-    - name: Include master specific tasks
+    - name: Initialize control plane
       include_tasks: ../roles/kubernetes/tasks/master.yml
       when: "'master' in group_names"
-      tags: master
+      tags: [master, control_plane]
 
-    - name: Include worker specific tasks
+    - name: Join worker nodes
       include_tasks: ../roles/kubernetes/tasks/worker.yml
       when: "'workers' in group_names"
-      tags: workers
+      tags: [workers, nodes]
+
+- name: Post-deployment validation
+  hosts: reservations
+  tasks:
+    - name: Verify cluster health
+      include_tasks: ../roles/kubernetes/tasks/verify.yml
+      tags: [validation, verify]

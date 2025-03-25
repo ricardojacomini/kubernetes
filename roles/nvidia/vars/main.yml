@@ -1,3 +1,4 @@
+# roles/nvidia/vars/main.yml
 ---
 # NVIDIA Driver Configuration
 nvidia_driver_version: "550"  # Matches your 550.127.05 driver
@@ -66,3 +67,22 @@ nvidia_feature_gates:
 # Resource Allocation
 nvidia_compute_resources:
   nvidia.com/gpu: 8  # Max GPUs allocatable per node
+
+
+  # Add GPU feature detection
+nvidia_gpu_types:
+  a100:
+    mig_profiles:
+      - "1g.5gb"
+      - "2g.10gb"
+  h100:
+    mig_profiles:
+      - "1g.10gb"
+      - "2g.20gb"
+
+# Enhanced monitoring
+nvidia_dcgm_exporter_config:
+  port: 9400
+  metrics:
+    - "DCGM_FI_DEV_GPU_UTIL"
+    - "DCGM_FI_DEV_MEM_COPY_UTIL"

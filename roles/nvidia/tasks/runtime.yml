@@ -1,3 +1,4 @@
+# roles/nvidia/tasks/runtime.yml
 ---
 - name: Configure containerd for NVIDIA
   blockinfile:
@@ -21,3 +22,11 @@
     insertafter: '\[plugins\."io\.containerd\.grpc\.v1\.cri"\.containerd\]'
   notify: restart containerd
   tags: nvidia,runtime
+
+# Add containerd config validation
+- name: Validate containerd config
+  command: containerd config dump > /dev/null
+  register: containerd_validate
+  failed_when: containerd_validate.rc != 0
+  changed_when: false
+  tags: nvidia,runtime  

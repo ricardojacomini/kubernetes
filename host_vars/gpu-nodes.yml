@@ -1,4 +1,4 @@
-# host_vars/gpu-node.yml
+# host_vars/gpu-nodes.yml
 docker_storage_opts:
   - "dm.basesize=20G"
   - "dm.mkfsarg=-b 4096"

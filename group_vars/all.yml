@@ -1,15 +1,7 @@
+# group_vars/all.yml
 ---
-# Common variables for all hosts
-container_runtime: containerd
-# k8s_version: "1.32.0"
-# docker_version: "24.0"
-
-# System configuration
-kernel_modules:
-  - overlay
-  - br_netfilter
-
-sysctl_params:
-  net.bridge.bridge-nf-call-iptables: 1
-  net.ipv4.ip_forward: 1
+version_pins:
+  kubernetes: "1.28.0"
+  containerd: "1.7.0"
+  nvidia_driver: "525.85.12"
   net.bridge.bridge-nf-call-ip6tables: 1

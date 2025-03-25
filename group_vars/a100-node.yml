@@ -1,7 +1,12 @@
 # host_vars/a100-node.yml
-# Enable MIG:
+# Description: Enable MIG on the node
+---
+nvidia_mig:
+  enabled: true
+  profiles:
+    - "1g.5gb"
+    - "2g.10gb"
 
-nvidia_mig_enabled: true
 nvidia_feature_gates:
-  - "DevicePlugins=true"
-  - "MigPartitioned=true"
+  DevicePlugins: true
+  MigPartitioned: true
