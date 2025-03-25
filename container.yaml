@@ -22,7 +22,7 @@
 
 # Run
 # ansible-playbook -i inventory.ini container.yaml
-# ansible-playbook -i inventory.ini container.yaml--limit l02
+# ansible-playbook -i inventory.ini container.yaml--limit c267
 
 # Final Check: Run the following command after deployment to ensure the runtime is available:
 #
