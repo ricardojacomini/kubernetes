@@ -23,10 +23,27 @@ Automated deployment of production-ready Kubernetes clusters with NVIDIA GPU acc
 - [Resources](#-resources)
 
 ## 🚀 Quick Start
-1. Clone the repository
-2. Configure your `inventory.ini` (see below)
-3. Run the deployment:
+### Prerequisites
+- Ansible 2.12+
+- Python 3.8+
+- Target nodes with:
+  - Ubuntu 24.04 or Rocky Linux 9
+  - Minimum 4GB RAM, 2 vCPUs per node
+  - NVIDIA GPU (for GPU nodes)
+
+### Deployment
 ```bash
+
+# Option 1:
+ml ansible-core
+
+or
+
+# Option 2 (if available):
+git clone https://github.com/your-repo/gpu-kubernetes-ansible.git
+cd gpu-kubernetes-ansible 
+
+# Then run:
 ansible-playbook -i inventory.ini playbooks/site.yml
 ```
 
@@ -36,14 +53,14 @@ ansible-playbook -i inventory.ini playbooks/site.yml
 kubernetes/
 ├── ansible.cfg              # Ansible configuration
 ├── inventory.ini            # Host definitions
-├── group_vars/              # Variable definitions
+├── group_vars/              # Group variables
 │   ├── all.yml             # Common configurations
 │   ├── ubuntu.yml          # Ubuntu-specific settings
 │   ├── rocky.yml           # Rocky Linux settings
 │   ├── gpu.yml             # GPU node configurations
 │   └── monitoring.yml      # Monitoring stack configs
-├── host_vars/
-│   ├── a100-node.yml       # A100-specific overrides
+├── host_vars/              # Host-specific overrides
+│   ├── a100-node.yml       # A100-specific settings
 │   └── high-density.yml    # High-density node tweaks
 ├── roles/                  # Ansible roles
 │   ├── common/             # Base system setup
@@ -76,7 +93,6 @@ icgpu10
 icgpu10
 ```
 ---
-
 
 ## 🔄 Execution Order
 
@@ -138,30 +154,90 @@ kubeadm join <master-ip>:6443 --token <token> --discovery-token-ca-cert-hash <ha
 
 ## ✔️ VERIFICATION
 
+Cluster Health
 ```bash
-# Check cluster status
-ansible -i inventory.ini master -m command -a "kubectl get nodes"
+ansible -i inventory.ini master -m command -a "kubectl get nodes -o wide"
+```
 
-# Verify GPU nodes
+GPU Status
+```bash
 ansible -i inventory.ini gpu -m command -a "nvidia-smi"
+```
+
+Detailed GPU Info
+```bash
+ansible -i inventory.ini gpu -m command -a "nvidia-smi --query-gpu=name,driver_version,cuda_version,memory.total --format=csv"
 ```
 
 ## 🎛️ Customization
 
-| Variable | File | Description | Default |
-|----------|------|-------------| --------|
-| `k8s_version` | `group_vars/all.yml` | Kubernetes version | 1.28 |
-| `nvidia_runtime_class` | `roles/nvidia/vars/main.yml` | GPU pod scheduling | nvidia | 
-| `pod_network` | `roles/kubernetes/vars/main.yml` | Calico/Flannel/Cilium | calico |
+### Core Configuration Variables
 
-### Example: Enable MIG on A100/H100
+| Variable | File | Description | Default | Valid Options |
+|----------|------|-------------|---------|---------------|
+| `k8s_version` | `all.yml` | Kubernetes version | `1.28.0` | Any supported version |
+| `container_runtime` | `all.yml` | Container runtime | `containerd` | `containerd`, `docker` |
+| `pod_network` | `all.yml` | CNI plugin | `calico` | `calico`, `flannel`, `cilium` |
+| `pod_network_cidr` | `all.yml` | Pod IP range | `10.244.0.0/16` | Valid CIDR range |
+
+### GPU-Specific Variables
+
+| Variable | File | Description | Default |
+|----------|------|-------------|---------|
+| `nvidia_runtime_class` | `roles/nvidia/vars/main.yml` | GPU pod scheduling class | `nvidia` |
+| `nvidia_mig_enabled` | `gpu-nodes.yml` | Enable MIG partitioning | `false` |
+| `nvidia_driver_version` | `gpu.yml` | Driver version | `535.86.05` |
+
+Change CNI Plugin to Cilium:
 
 ```yaml
+# group_vars/all.yml
+pod_network: "cilium"
+pod_network_cidr: "10.0.0.0/16"
+cilium:
+  kubeProxyReplacement: "strict"
+  hubble:
+    enabled: true
+```
+
+Configure Kubernetes Resource Reservations:
+
+```yaml
+# group_vars/all.yml
+kubelet_reserved:
+  cpu: "500m"
+  memory: "1Gi"
+  ephemeral-storage: "5Gi"
+````
+
+Enable MIG on A100/H100 GPUs:
+
+for GPU-specific configurations
+
+```yaml
+# host_vars/gpu-node.yml 
 nvidia_mig:
   enabled: true
   profiles:
-    - "1g.5gb"
-    - "2g.10gb"
+    - "1g.5gb"  # 1 GPU instance with 5GB memory
+    - "2g.10gb" # 2 GPU instances with 10GB memory each
+  strategy: "mixed"  # Options: single, mixed
+```
+
+for cluster-wide networking
+
+```yaml
+# group_vars/all.yml 
+pod_network: "cilium"
+pod_network_cidr: "10.0.0.0/16"
+cilium:
+  kubeProxyReplacement: "strict"  # Options: disabled, probe, strict
+  hubble:
+    enabled: true
+    metrics:
+      enabled: true
+  bandwidthManager:
+    enabled: true
 ```
 
 ## OS-specific deployments:
@@ -174,31 +250,45 @@ ansible-playbook playbooks/site.yml -l ubuntu_nodes
 ansible-playbook playbooks/site.yml -l rocky_nodes
 ````
 
-## 🛠 Troubleshooting
+## 🛠 Troubleshooting Guide
 
-* Nodes not joining cluster:
-Check kubelet logs
+Common Issues
+Nodes Not Joining Cluster
 
 ```bash
-journalctl -u kubelet
+# Check kubelet logs
+journalctl -u kubelet -n 100 --no-pager
+
+# Verify certificates
+openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout```
 ```
 
 * Container runtime issues:
 
-Verify Containerd config
-
 ```bash
+# Check containerd status
 sudo ctr version
-```
 
-* GPU node verification:
+# Verify container images
+sudo ctr images list
+````
 
-Run nvidia-smi and nvidia-container-runtime --version
+* GPU Problems:
 
 ```bash
-ansible gpu_nodes -m command -a "nvidia-smi --query-gpu=driver_version,cuda_version --format=csv"   
-nvidia-smi --query-gpu=driver_version,cuda_version --format=csv
-nvidia-container-runtime --version
+# Verify NVIDIA driver and runtime status
+ansible gpu_nodes -m command -a "nvidia-smi --query-gpu=name,driver_version,cuda_version,memory.total --format=csv"
+ansible gpu_nodes -m command -a "nvidia-container-runtime --version"
+
+# Additional diagnostic commands (run on GPU nodes directly):
+# Verify driver loading
+lsmod | grep nvidia
+
+# Check Kubernetes GPU resources
+kubectl describe node <gpu-node> | grep -A10 'Capacity:\|Allocatable:'
+
+# Verify device plugin pods
+kubectl get pods -n kube-system | grep nvidia-device-plugin
 ```
 
 ## 📚 Resources
@@ -206,3 +296,4 @@ nvidia-container-runtime --version
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/overview.html)
 - [Ansible Best Practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html)
+- [Kubernetes GPU Scheduling](https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus)
