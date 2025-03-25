@@ -67,7 +67,7 @@
       yum:
         name: '*'
         state: latest
-        exclude: "opensm-libs,libibverbs,ucx,perftest,openmpi"
+        exclude: "opensm-libs,libibverbs,ucx,perftest,openmpi,ucx-rdmacm,ucx-ib,ucx-devel,ucx-cma"
       when: ansible_distribution == 'Rocky'
 
     - name: configure modules for Containerd
