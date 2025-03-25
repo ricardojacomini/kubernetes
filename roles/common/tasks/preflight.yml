@@ -1,0 +1,19 @@
+---
+- name: Verify system architecture
+  assert:
+    that:
+      - ansible_architecture == "x86_64"
+    msg: "Only x86_64 architecture is supported"
+
+- name: Check minimum memory requirements
+  assert:
+    that:
+      - ansible_memtotal_mb >= 4096
+    msg: "At least 4GB RAM required"
+
+- name: Verify NVIDIA GPU presence
+  command: lspci | grep -i nvidia
+  register: nvidia_hw
+  changed_when: false
+  when: "'gpu' in group_names"
+  tags: gpu

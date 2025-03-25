@@ -4,18 +4,22 @@
 # playbooks/site.yml
 ---
 - name: Validate cluster prerequisites
-  hosts: all
+  hosts: reservations
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/os/{{ ansible_distribution | lower }}.yml
+    - "../group_vars/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
   tasks:
-    - name: Run preflight checks
-      include_tasks: ../roles/common/tasks/preflight.yml
+    - name: Include system checks
+      include_tasks: "{{ lookup('first_found', possible_files) }}"
+      vars:
+        possible_files:
+          - ../roles/common/tasks/preflight.yml
+          - ../roles/common/tasks/main.yml
       tags: always,prerequisites
 
 - name: Configure base system
-  hosts: all
+  hosts: reservations
   vars_files:
     - ../group_vars/all.yml
     - ../group_vars/os/{{ ansible_distribution | lower }}.yml
@@ -24,7 +28,7 @@
       tags: common
 
 - name: Setup container runtime
-  hosts: all
+  hosts: reservations
   roles:
     - role: docker
       tags: docker
@@ -36,7 +40,7 @@
       tags: nvidia
 
 - name: Deploy Kubernetes cluster
-  hosts: all
+  hosts: reservations
   vars_files:
     - ../group_vars/k8s-cluster.yml
   roles:
@@ -56,7 +60,7 @@
       tags: workers
 
 - name: Validate deployment
-  hosts: all
+  hosts: reservations
   tasks:
     - include_tasks: ../roles/kubernetes/tasks/verify.yml
       tags: verify
