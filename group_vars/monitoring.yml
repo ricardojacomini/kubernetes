@@ -1,0 +1,3 @@
+# group_vars/monitoring.yml
+nvidia_dcgm_enabled: true
+nvidia_dcgm_exporter_enabled: true

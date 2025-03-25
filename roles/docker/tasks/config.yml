@@ -1,0 +1,13 @@
+# roles/docker/tasks/config.yml
+- name: Ensure Docker config directory exists
+  file:
+    path: "{{ docker_config_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Configure Docker daemon
+  template:
+    src: config.yml.j2
+    dest: "{{ docker_config_file }}"
+    mode: 0644
+  notify: restart docker

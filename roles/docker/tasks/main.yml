@@ -1,0 +1,67 @@
+---
+- name: Include OS-specific prerequisites
+  include_tasks: "prereqs_{{ ansible_distribution | lower }}.yml"
+  tags: docker,prereqs
+
+- name: Install Docker packages
+  package:
+    name: "{{ docker_packages }}"
+    state: present
+  notify: restart docker
+  tags: docker,install
+
+- name: Ensure Docker configuration directory exists
+  file:
+    path: "{{ docker_config_dir }}"
+    state: directory
+    mode: 0755
+  tags: docker,config
+
+- name: Configure Docker daemon
+  template:
+    src: etc/docker/daemon.json.j2
+    dest: "{{ docker_config_file }}"
+    mode: 0644
+  notify: restart docker
+  tags: docker,config
+
+- name: Configure containerd
+  template:
+    src: etc/containerd/config.toml.j2
+    dest: "{{ containerd_config_file }}"
+    mode: 0640
+  when: "'containerd.io' in docker_packages"
+  notify: restart containerd
+  tags: docker,containerd
+
+- name: Manage Docker service
+  systemd:
+    name: docker
+    state: "{{ docker_service_state }}"
+    enabled: "{{ docker_service_enabled }}"
+    daemon_reload: yes
+  tags: docker,service
+
+- name: Add users to docker group
+  user:
+    name: "{{ item }}"
+    groups: "{{ docker_group }}"
+    append: yes
+  loop: "{{ docker_users }}"
+  tags: docker,users
+
+- name: Verify Docker installation
+  command: docker info
+  register: docker_info
+  changed_when: false
+  tags: docker,verify
+
+- name: Show Docker version
+  debug:
+    msg: "Docker version {{ docker_info.stdout | regex_search('Server Version: (\\S+)') | first }}"
+  tags: docker,verify
+
+- name: Include NVIDIA setup if enabled
+  include_tasks: nvidia.yml
+  when: docker_nvidia_enabled | bool
+  tags: docker,nvidia

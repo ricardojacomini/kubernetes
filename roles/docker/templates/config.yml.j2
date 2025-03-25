@@ -1,0 +1,49 @@
+# roles/docker/templates/config.yml.j2
+# Docker daemon configuration template
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "3"
+  },
+  "storage-driver": "{{ docker_storage_driver }}",
+  {% if docker_storage_opts %}
+  "storage-opts": {{ docker_storage_opts | to_json }},
+  {% endif %}
+  "data-root": "/var/lib/docker",
+  {% if docker_bip %}
+  "bip": "{{ docker_bip }}",
+  {% endif %}
+  {% if docker_mtu %}
+  "mtu": {{ docker_mtu }},
+  {% endif %}
+  "default-runtime": "{{ docker_default_runtime }}",
+  "runtimes": {
+    {% for runtime_name, runtime_config in docker_runtimes.items() %}
+    "{{ runtime_name }}": {
+      "path": "{{ runtime_config.path }}",
+      {% if runtime_config.options %}
+      "runtimeArgs": {{ runtime_config.options | to_json }}
+      {% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  },
+  {% if docker_registry_mirrors %}
+  "registry-mirrors": {{ docker_registry_mirrors | to_json }},
+  {% endif %}
+  {% if docker_insecure_registries %}
+  "insecure-registries": {{ docker_insecure_registries | to_json }},
+  {% endif %}
+  "live-restore": {{ docker_live_restore | lower }},
+  "icc": {{ docker_icc | lower }},
+  "userland-proxy": {{ docker_userland_proxy | lower }},
+  {% if docker_dns %}
+  "dns": {{ docker_dns | to_json }},
+  {% endif %}
+  "features": {
+    "buildkit": true
+  }
+}

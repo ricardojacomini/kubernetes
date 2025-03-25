@@ -1,0 +1,77 @@
+---
+# Kubernetes Core Components
+k8s_version: "1.28.0"
+k8s_components:
+  - kubelet
+  - kubeadm
+  - kubectl
+  - cri-tools
+
+# Networking Configuration
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+dns_domain: "cluster.local"
+network_plugin: "flannel"  # Options: flannel, calico, cilium, weave
+
+# Cluster Initialization
+kubeadm_init_flags:
+  - "--pod-network-cidr={{ pod_network_cidr }}"
+  - "--service-cidr={{ service_cidr }}"
+  - "--ignore-preflight-errors=Swap"
+  - "--upload-certs"
+
+# Container Runtime Configuration
+container_runtime: "containerd"
+cri_socket: "/run/containerd/containerd.sock"
+
+# OS-Specific Package Names
+k8s_packages:
+  ubuntu:
+    kubelet: "kubelet={{ k8s_version }}-*"
+    kubeadm: "kubeadm={{ k8s_version }}-*"
+    kubectl: "kubectl={{ k8s_version }}-*"
+  rocky:
+    kubelet: "kubelet-{{ k8s_version }}-*"
+    kubeadm: "kubeadm-{{ k8s_version }}-*"
+    kubectl: "kubectl-{{ k8s_version }}-*"
+
+# Repository Configuration
+k8s_repos:
+  ubuntu:
+    gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/Release.key"
+    repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/ /"
+  rocky:
+    gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/repodata/repomd.xml.key"
+    repo_url: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/"
+
+# System Configuration
+kubelet_flags:
+  - "--container-runtime=remote"
+  - "--container-runtime-endpoint=unix://{{ cri_socket }}"
+  - "--node-ip=$(hostname -I | awk '{print $1}')"
+
+# Addon Configuration
+cni_plugins:
+  flannel:
+    manifest: "https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml"
+    requirements: []
+  calico:
+    manifest: "https://docs.projectcalico.org/manifests/calico.yaml"
+    requirements:
+      - "ipset"
+      - "iptables"
+
+# Security
+enforce_node_restrictions: true
+allow_privileged: false
+protect_kernel_defaults: true
+
+# Resource Limits
+kubelet_reserved:
+  cpu: "500m"
+  memory: "500Mi"
+  ephemeral-storage: "1Gi"
+system_reserved:
+  cpu: "500m"
+  memory: "500Mi"
+  ephemeral-storage: "1Gi"

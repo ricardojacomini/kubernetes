@@ -1,0 +1,19 @@
+---
+- name: Install Docker (Ubuntu)
+  apt:
+    name:
+      - docker-ce={{ docker_version }}*
+      - docker-ce-cli={{ docker_version }}*
+      - containerd.io
+    state: present
+    update_cache: yes
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Install Docker (Rocky)
+  yum:
+    name:
+      - docker-ce-{{ docker_version }}*
+      - docker-ce-cli-{{ docker_version }}*
+      - containerd.io
+    state: present
+  when: ansible_distribution == 'Rocky'

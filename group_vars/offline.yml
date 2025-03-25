@@ -1,0 +1,5 @@
+# group_vars/offline.yml
+k8s_repos:
+  ubuntu:
+    gpg_key: "file:///opt/pki/kubernetes-key.gpg"
+    repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] file:///opt/repos/kubernetes /"

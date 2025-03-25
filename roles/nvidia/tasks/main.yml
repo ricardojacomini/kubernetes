@@ -1,0 +1,32 @@
+---
+- name: Verify NVIDIA GPU presence
+  command: lspci | grep -i nvidia
+  register: nvidia_gpu_check
+  changed_when: false
+  failed_when: false
+  tags: nvidia,verify
+
+- name: Set NVIDIA GPU fact
+  set_fact:
+    has_nvidia_gpu: "{{ nvidia_gpu_check.rc == 0 }}"
+  tags: nvidia,verify
+
+- name: Include repository setup
+  include_tasks: repos.yml
+  when: has_nvidia_gpu
+  tags: nvidia,repos
+
+- name: Install NVIDIA packages
+  include_tasks: install.yml
+  when: has_nvidia_gpu
+  tags: nvidia,install
+
+- name: Configure container runtime
+  include_tasks: runtime.yml
+  when: has_nvidia_gpu
+  tags: nvidia,runtime
+
+- name: Validate NVIDIA setup
+  include_tasks: validate.yml
+  when: has_nvidia_gpu
+  tags: nvidia,validate

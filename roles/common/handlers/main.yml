@@ -1,0 +1,53 @@
+---
+- name: load kernel modules
+  command: modprobe -a {{ kernel_modules | join(' ') }}
+  when: not ansible_check_mode
+  listen: "kernel modules changed"
+
+- name: reload sysctl
+  command: sysctl --system
+  when: not ansible_check_mode
+  listen: "sysctl changes"
+
+- name: restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  listen: "containerd configuration changed"
+
+- name: reboot system
+  reboot:
+    msg: "Reboot required by Ansible"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+  listen: "system reboot required"
+
+- name: update package cache
+  apt:
+    update_cache: yes
+  when: ansible_distribution == 'Ubuntu'
+  listen: "apt repository changed"
+
+- name: rebuild yum cache
+  yum:
+    name: '*'
+    update_cache: yes
+  when: ansible_distribution == 'Rocky'
+  listen: "yum repository changed"
+
+- name: apply network changes
+  block:
+    - name: flush network interfaces
+      command: nmcli connection reload
+      when: ansible_os_family == 'RedHat'
+    
+    - name: restart network
+      service:
+        name: networking
+        state: restarted
+      when: ansible_os_family == 'Debian'
+  listen: "network configuration changed"

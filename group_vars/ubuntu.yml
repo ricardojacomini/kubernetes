@@ -1,0 +1,43 @@
+---
+# Ubuntu specific variables
+docker_packages:
+  - docker-ce={{ docker_version }}*
+  - docker-ce-cli={{ docker_version }}*
+  - containerd.io
+
+# Repository Configuration
+docker_repo_url: "https://download.docker.com/linux/ubuntu"
+docker_repo_gpgkey: "https://download.docker.com/linux/ubuntu/gpg"
+docker_repo_suite: "{{ ansible_distribution_release }}"
+
+# Kernel Modules
+kernel_modules_extra:
+  - linux-modules-extra-{{ ansible_kernel }}
+
+# Service Management
+service_manager: "systemd"
+
+# Network Configuration
+network_interface: "ens160"
+firewall_packages:
+  - ufw
+
+# Storage Configuration
+docker_storage_driver: "overlay2"
+docker_storage_opts: []
+
+# NVIDIA Settings (for GPU nodes)
+nvidia_repo_url: "https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$basearch"
+nvidia_packages:
+  - nvidia-container-toolkit
+  - libnvidia-container-tools
+  - libnvidia-container1
+
+# System Packages
+system_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg-agent
+  - software-properties-common
+  - conntrack

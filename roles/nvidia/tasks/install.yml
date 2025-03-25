@@ -1,0 +1,21 @@
+---
+- name: Install NVIDIA packages (Ubuntu)
+  apt:
+    name:
+      - nvidia-container-toolkit
+      - nvidia-driver-535
+      - nvidia-dkms-535
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+  tags: nvidia,install
+
+- name: Install NVIDIA packages (Rocky)
+  yum:
+    name:
+      - nvidia-container-toolkit
+      - nvidia-driver
+      - kernel-devel-{{ ansible_kernel }}
+    state: present
+    enablerepo: nvidia-container-toolkit
+  when: ansible_distribution == 'Rocky'
+  tags: nvidia,install

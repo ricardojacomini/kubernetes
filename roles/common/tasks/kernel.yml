@@ -1,0 +1,25 @@
+---
+- name: Ensure modules directory exists
+  file:
+    path: /etc/modules-load.d
+    state: directory
+    mode: 0755
+
+- name: Configure kernel modules
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      {{ kernel_modules | join('\n') }}
+    owner: root
+    group: root
+    mode: 0644
+  notify: load kernel modules
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    reload: yes
+    state: present
+  loop: "{{ sysctl_params | dict2items }}"

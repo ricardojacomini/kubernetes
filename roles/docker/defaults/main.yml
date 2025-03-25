@@ -1,0 +1,70 @@
+---
+# Docker version and components
+docker_version: "24.0"  # Default version (will use latest 24.0.x)
+docker_edition: "ce"    # Community Edition
+docker_components:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+
+# Repository configuration
+docker_repository:
+  ubuntu:
+    gpg_key: "https://download.docker.com/linux/ubuntu/gpg"
+    repo_url: "https://download.docker.com/linux/ubuntu"
+    components: "stable"
+  rocky:
+    gpg_key: "https://download.docker.com/linux/centos/gpg"
+    repo_url: "https://download.docker.com/linux/centos"
+    components: "stable"
+
+# Configuration files
+docker_config_dir: "/etc/docker"
+docker_config_file: "{{ docker_config_dir }}/daemon.json"
+containerd_config_file: "/etc/containerd/config.toml"
+
+# Storage driver configuration
+docker_storage_driver: "overlay2"
+docker_storage_opts: []
+
+# Network configuration
+docker_bip: null  # Example: "172.17.0.1/16"
+docker_mtu: null
+docker_dns:
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+# Runtime configuration
+docker_default_runtime: "runc"
+docker_runtimes:
+  nvidia:
+    path: "/usr/bin/nvidia-container-runtime"
+    options: {}
+
+# Proxy settings
+docker_proxy:
+  http: null
+  https: null
+  no_proxy: null
+
+# User management
+docker_users: []
+docker_group: "docker"
+docker_group_gid: null
+
+# Service configuration
+docker_service_state: "started"
+docker_service_enabled: true
+
+# NVIDIA GPU support
+docker_nvidia_enabled: false
+nvidia_container_toolkit_version: "latest"
+
+# Registry mirrors
+docker_registry_mirrors: []
+docker_insecure_registries: []
+
+# Live restore settings
+docker_live_restore: true
+docker_icc: false
+docker_userland_proxy: false

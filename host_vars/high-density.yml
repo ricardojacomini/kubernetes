@@ -1,0 +1,7 @@
+# host_vars/high-density.yml
+kubelet_reserved:
+  cpu: "1000m"
+  memory: "2Gi"
+system_reserved:
+  cpu: "1000m"
+  memory: "2Gi"

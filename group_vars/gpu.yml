@@ -1,0 +1,19 @@
+# group_vars/gpu.yml
+
+# Check syntax
+# sudo docker daemon --validate --config-file=/etc/docker/daemon.json
+
+# Test with dry-run
+# sudo dockerd --config-file=/etc/docker/daemon.json --dry-run
+
+docker_runtimes:
+  nvidia:
+    path: "/usr/bin/nvidia-container-runtime"
+    options:
+      SystemdCgroup: true
+
+# group_vars/gpu.yml
+kubelet_flags:
+  - "--container-runtime=remote"
+  - "--container-runtime-endpoint=unix://{{ cri_socket }}"
+  - "--feature-gates=DevicePlugins=true"

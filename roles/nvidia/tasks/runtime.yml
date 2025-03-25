@@ -1,0 +1,23 @@
+---
+- name: Configure containerd for NVIDIA
+  blockinfile:
+    path: /etc/containerd/config.toml
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA RUNTIME"
+    block: |
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+        runtime_type = "io.containerd.runc.v2"
+        privileged_without_host_devices = false
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+          BinaryName = "/usr/bin/nvidia-container-runtime"
+          SystemdCgroup = true
+  notify: restart containerd
+  tags: nvidia,runtime
+
+- name: Set default runtime to NVIDIA
+  lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^(\s*)default_runtime_name ='
+    line: '\1default_runtime_name = "nvidia"'
+    insertafter: '\[plugins\."io\.containerd\.grpc\.v1\.cri"\.containerd\]'
+  notify: restart containerd
+  tags: nvidia,runtime

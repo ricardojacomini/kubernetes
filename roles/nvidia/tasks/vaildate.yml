@@ -1,0 +1,21 @@
+---
+- name: Verify NVIDIA drivers
+  command: nvidia-smi
+  register: nvidia_smi
+  changed_when: false
+  tags: nvidia,validate
+
+- name: Verify container runtime
+  command: nvidia-container-runtime --version
+  register: nvidia_runtime
+  changed_when: false
+  tags: nvidia,validate
+
+- name: Show GPU information
+  debug:
+    msg: |
+      NVIDIA Drivers:
+      {{ nvidia_smi.stdout_lines[0] }}
+      {{ nvidia_smi.stdout_lines[1] }}
+      Container Runtime: {{ nvidia_runtime.stdout }}
+  tags: nvidia,validate

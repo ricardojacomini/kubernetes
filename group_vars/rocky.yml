@@ -1,0 +1,39 @@
+---
+# Rocky Linux specific variables
+docker_packages:
+  - docker-ce-{{ docker_version }}*
+  - docker-ce-cli-{{ docker_version }}*
+  - containerd.io
+
+# Repository Configuration
+docker_repo_url: "https://download.docker.com/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
+docker_repo_gpgkey: "https://download.docker.com/linux/centos/gpg"
+
+# Kernel Modules
+kernel_modules_extra: []
+
+# Service Management
+service_manager: "systemd"
+
+# Network Configuration
+network_interface: "eth0"
+firewall_packages:
+  - firewalld
+
+# Storage Configuration
+docker_storage_driver: "overlay2"
+docker_storage_opts: []
+
+# NVIDIA Settings (for GPU nodes)
+nvidia_repo_url: "https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo"
+nvidia_packages:
+  - nvidia-container-toolkit
+  - libnvidia-container-tools
+  - libnvidia-container1
+
+# System Packages
+system_packages:
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+  - conntrack-tools

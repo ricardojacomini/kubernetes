@@ -1,0 +1,68 @@
+---
+# NVIDIA Driver Configuration
+nvidia_driver_version: "550"  # Matches your 550.127.05 driver
+cuda_version: "12.4"          # From your CUDA Version output
+
+nvidia_driver_packages:
+  ubuntu:
+    - "nvidia-driver-{{ nvidia_driver_version }}"
+    - "nvidia-dkms-{{ nvidia_driver_version }}"
+    - "nvidia-utils-{{ nvidia_driver_version }}"
+    - "cuda-{{ cuda_version | replace('.', '-') }}"
+  rocky:
+    - "nvidia-driver-{{ nvidia_driver_version }}.*"
+    - "kernel-devel-{{ ansible_kernel }}"
+    - "cuda-toolkit-{{ cuda_version | replace('.', '-') | truncate(3, True, '') }}"
+
+# Container Toolkit Configuration
+nvidia_container_toolkit_version: "v1.14.6"  # Verified compatible with 550.x
+nvidia_runtime_name: "nvidia"
+nvidia_runtime_path: "/usr/bin/nvidia-container-runtime"
+nvidia_runtime_class: "nvidia"
+
+# Repository Configuration
+nvidia_repositories:
+  ubuntu:
+    gpg_key: "https://nvidia.github.io/libnvidia-container/gpgkey"
+    repo_url: "https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$basearch"
+  rocky:
+    gpg_key: "https://nvidia.github.io/libnvidia-container/gpgkey"
+    repo_url: "https://nvidia.github.io/libnvidia-container/stable/rhel{{ ansible_distribution_major_version }}/$basearch"
+
+# Kubernetes Integration
+nvidia_device_plugin:
+  enabled: true
+  image: "nvcr.io/nvidia/k8s-device-plugin:v0.14.1"
+  args: ["--mig-strategy=none"]
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+
+# MIG Configuration (for A100/H100)
+nvidia_mig_enabled: false
+nvidia_mig_configs:
+  - id: "mig-1g.5gb"
+    devices: "all"
+  - id: "mig-2g.10gb"
+    count: 2
+
+# Runtime Options
+nvidia_runtime_options:
+  SystemdCgroup: true
+  Debug: false
+  Runtime: "docker"
+  Path: "{{ nvidia_runtime_path }}"
+
+# Monitoring Stack
+nvidia_dcgm_enabled: false
+nvidia_dcgm_version: "3.3.1"
+nvidia_dcgm_exporter_enabled: true
+
+# Feature Gates
+nvidia_feature_gates:
+  - "DevicePlugins=true"
+  - "MixedCPUsAllocation=true"
+
+# Resource Allocation
+nvidia_compute_resources:
+  nvidia.com/gpu: 8  # Max GPUs allocatable per node

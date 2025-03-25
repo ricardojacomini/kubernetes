@@ -1,0 +1,14 @@
+---
+- name: Include base Kubernetes tasks
+  include_tasks: base.yml
+  tags: kubernetes
+
+- name: Configure master node
+  include_tasks: master.yml
+  when: "'master' in group_names"
+  tags: master
+
+- name: Configure worker node
+  include_tasks: worker.yml
+  when: "'workers' in group_names"
+  tags: worker

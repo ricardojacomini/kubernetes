@@ -1,0 +1,34 @@
+---
+# playbooks/site.yml - Master Playbook
+- name: Configure infrastructure foundation
+  hosts: reservations
+  gather_facts: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/os/{{ ansible_distribution | lower }}.yml
+  roles:
+    - role: common
+      tags: prerequisites
+    - role: docker
+      tags: container_runtime
+    - role: nvidia
+      when: "'gpu' in group_names"
+      tags: gpu
+
+- name: Deploy Kubernetes cluster
+  hosts: reservations
+  vars_files:
+    - ../group_vars/k8s-cluster.yml
+  roles:
+    - role: kubernetes
+      tags: kubernetes
+  tasks:
+    - name: Include master specific tasks
+      include_tasks: ../roles/kubernetes/tasks/master.yml
+      when: "'master' in group_names"
+      tags: master
+
+    - name: Include worker specific tasks
+      include_tasks: ../roles/kubernetes/tasks/worker.yml
+      when: "'workers' in group_names"
+      tags: workers
