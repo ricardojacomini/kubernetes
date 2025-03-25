@@ -1,0 +1,244 @@
+# -*- coding: utf-8 -*-
+# Ricardo S Jacomini <rsjacomini@gmail.com>
+# Date: Feb 28, 2025
+
+# Playbook Prepares systems for Kubernetes installation
+# OS validation
+# Package updates
+# SWAP management
+# Kernel module configuration
+# Docker and Kubernetes repository setup
+# Containerd installation and configuration
+# Kubelet and Kubeadm installation
+# Network configuration
+# Master node gets additional kubectl installation
+
+---
+
+- hosts: reservations
+  become: yes
+  tasks:
+    - fail:
+        msg: "OS should be Ubuntu 24.04 or Rocky Linux 8, not {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: >
+        (ansible_distribution == 'Ubuntu' and ansible_distribution_version != '24.04') or
+        (ansible_distribution == 'Rocky' and ansible_distribution_version != '8') or
+        (ansible_distribution != 'Ubuntu' and ansible_distribution != 'Rocky')
+
+    - name: update APT packages
+      apt:
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: update YUM packages
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_distribution == 'Rocky'
+
+    - name: reboot and wait for reboot to complete
+      reboot:
+
+    - name: disable SWAP (Kubeadm requirement)
+      shell: |
+        swapoff -a
+
+    - name: disable SWAP in fstab (Kubeadm requirement)
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+    - name: create an empty file for the Containerd module
+      copy:
+        content: ""
+        dest: /etc/modules-load.d/containerd.conf
+        force: no
+
+    - name: configure modules for Containerd
+      blockinfile:
+        path: /etc/modules-load.d/containerd.conf
+        block: |
+          overlay
+    - name: create an empty file for Kubernetes sysctl params
+      copy:
+        content: ""
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        force: no
+
+    - name: configure sysctl params for Kubernetes
+      lineinfile:
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
+        line: "{{ item }}"
+      with_items:
+        - 'net.bridge.bridge-nf-call-iptables  = 1'
+        - 'net.ipv4.ip_forward                 = 1'
+        - 'net.bridge.bridge-nf-call-ip6tables = 1'
+
+      command: sysctl --system
+
+    - name: install APT Transport HTTPS
+      apt:
+        name: apt-transport-https
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: install YUM utils
+      yum:
+        name: yum-utils
+        state: present
+      when: ansible_distribution == 'Rocky'
+
+    - name: add Docker apt-key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker-apt-keyring.asc
+        mode: '0644'
+        force: true
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: add Docker's APT repository
+      apt_repository:
+        repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/etc/apt/keyrings/docker-apt-keyring.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: add Docker's YUM repository
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable - $basearch
+        baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/centos/gpg
+        enabled: yes
+      when: ansible_distribution == 'Rocky'
+
+    - name: add Kubernetes apt-key
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key
+        mode: '0644'
+        force: true
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: add Kubernetes' APT repository
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /"
+        state: present
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: add Kubernetes' YUM repository
+      yum_repository:
+        name: kubernetes
+        description: Kubernetes
+        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        gpgcheck: yes
+        gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        enabled: yes
+      when: ansible_distribution == 'Rocky'
+
+    - name: install Containerd Ubuntu
+      apt:
+        name: containerd.io
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: install Containerd Rocky
+      yum:
+        name: containerd.io
+        state: present
+      when: ansible_distribution == 'Rocky'
+
+    - name: create Containerd directory
+      file:
+        path: /home/{{ ansible_user }}/.kube/etc/containerd
+        state: directory
+
+    - name: add Containerd configuration
+      shell: /usr/bin/containerd config default > /home/{{ ansible_user }}/.kube/etc/containerd/config.toml
+
+    - name: configuring the systemd cgroup driver for Containerd
+      lineinfile:
+        path: /home/{{ ansible_user }}/.kube/etc/containerd/config.toml
+        regexp: '            SystemdCgroup = false'
+        line: '            SystemdCgroup = true'
+
+    - name: enable the Containerd service and start it
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon-reload: yes
+
+    - name: install Kubelet Ubuntu
+      apt:
+        name: kubelet=1.32.*
+        state: present
+        update_cache: true
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: install Kubelet Rocky
+      yum:
+        name: kubelet-1.32.*
+        state: present
+      when: ansible_distribution == 'Rocky'
+
+    - name: install Kubeadm Ubuntu
+      apt:
+        name: kubeadm=1.32.*
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: install Kubeadm Rocky
+      yum:
+        name: kubeadm-1.32.*
+        state: present
+      when: ansible_distribution == 'Rocky'
+
+    - name: enable the Kubelet service, and enable it persistently
+      service:
+        name: kubelet
+        enabled: yes
+
+    - name: load br_netfilter kernel module
+      modprobe:
+        name: br_netfilter
+        state: present
+
+    - name: set bridge-nf-call-iptables
+      sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+
+    - name: set ip_forward
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+
+    # - name: reboot and wait for reboot to complete
+    #  reboot:
+    #    reboot_timeout: 600  # Set the timeout to 600 seconds (10 minutes)
+
+    - name: add public key for the cluster to the API user k8s-nodes
+      authorized_key:
+        user: k8s-nodes
+        state: present
+        key: "{{ lookup('file', '/home/{{ ansible_user }}/.kube/public/key.pub') }}"
+
+- hosts: master
+  become: yes
+  tasks:
+    - name: install Kubectl Ubuntu
+      apt:
+        name: kubectl=1.32.*
+        state: present
+        force: yes # allow downgrades
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: install Kubectl Rocky
+      yum:
+        name: kubectl-1.32.*
+        state: present
+        force: yes # allow downgrades
+      when: ansible_distribution == 'Rocky'
