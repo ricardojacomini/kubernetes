@@ -1,3 +1,5 @@
+# roles/common/tasks/preflight.yml
+
 ---
 - name: Verify system architecture
   assert:

@@ -51,7 +51,7 @@ nvidia_mig_configs:
 nvidia_runtime_options:
   SystemdCgroup: true
   Debug: false
-  Runtime: "docker"
+  Runtime: "containerd" # or "docker"
   Path: "{{ nvidia_runtime_path }}"
 
 # Monitoring Stack

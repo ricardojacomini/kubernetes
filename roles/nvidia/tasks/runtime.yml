@@ -1,5 +1,18 @@
-# roles/nvidia/tasks/runtime.yml
 ---
+- name: Verify NVIDIA toolkit installation
+  command: nvidia-container-toolkit --version
+  register: toolkit_check
+  changed_when: false
+  failed_when: toolkit_check.rc != 0
+  tags: [nvidia, runtime]
+
+- name: Ensure containerd config directory exists
+  file:
+    path: /etc/containerd
+    state: directory
+    mode: 0755
+  tags: [nvidia, runtime]
+
 - name: Configure containerd for NVIDIA
   blockinfile:
     path: /etc/containerd/config.toml
@@ -9,24 +22,25 @@
         runtime_type = "io.containerd.runc.v2"
         privileged_without_host_devices = false
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
-          BinaryName = "/usr/bin/nvidia-container-runtime"
-          SystemdCgroup = true
+          BinaryName = "{{ nvidia_runtime_path }}"
+          SystemdCgroup = {{ nvidia_runtime_options.SystemdCgroup | lower }}
   notify: restart containerd
-  tags: nvidia,runtime
+  when: toolkit_check.rc == 0
+  tags: [nvidia, runtime]
 
-- name: Set default runtime to NVIDIA
+- name: Set default runtime to NVIDIA (if configured)
   lineinfile:
     path: /etc/containerd/config.toml
-    regexp: '^(\s*)default_runtime_name ='
-    line: '\1default_runtime_name = "nvidia"'
+    regexp: '^(\s*)default_runtime_name\s*='
+    line: '\1default_runtime_name = "{{ nvidia_runtime_name }}"'
     insertafter: '\[plugins\."io\.containerd\.grpc\.v1\.cri"\.containerd\]'
   notify: restart containerd
-  tags: nvidia,runtime
+  when: 
+    - toolkit_check.rc == 0
+    - nvidia_runtime_options.Runtime == "containerd"
+  tags: [nvidia, runtime]
 
-# Add containerd config validation
 - name: Validate containerd config
-  command: containerd config dump > /dev/null
+  command: containerd config validate /etc/containerd/config.toml
   register: containerd_validate
-  failed_when: containerd_validate.rc != 0
   changed_when: false
-  tags: nvidia,runtime  

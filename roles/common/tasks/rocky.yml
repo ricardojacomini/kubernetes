@@ -17,6 +17,28 @@
     state: present
   tags: prerequisites
 
+- name: Install base packages for Rocky Linux
+  yum:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - curl
+      - git
+    state: present
+  tags: [common, prereqs]
+
+- name: Configure Docker CE repository (Rocky Linux)
+  yum_repository:
+    name: docker-ce
+    description: Docker CE Stable
+    baseurl: "https://download.docker.com/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
+    gpgkey: "https://download.docker.com/linux/centos/gpg"
+    gpgcheck: yes
+    enabled: yes
+  tags: [common, docker-repo]
+  when: "'docker' in ansible_run_tags"  # Only run when Docker role is included
+
 - name: Configure kernel modules for Containerd
   blockinfile:
     path: /etc/modules-load.d/containerd.conf
@@ -73,6 +95,18 @@
       command: yum clean all && yum makecache
   when: has_nvidia
   tags: nvidia-setup
+
+- name: Install NVIDIA driver prerequisites (Rocky Linux)
+  yum:
+    name:
+      - kernel-devel-{{ ansible_kernel }}
+      - kernel-headers-{{ ansible_kernel }}
+      - gcc
+      - make
+      - dkms
+    state: present
+  when: "'gpu' in group_names"
+  tags: [common, nvidia-prereqs]
 
 - name: Install NVIDIA Container Toolkit (if GPU detected)
   yum:

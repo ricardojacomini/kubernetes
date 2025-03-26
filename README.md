@@ -278,6 +278,16 @@ Detailed GPU Info
 ansible -i inventory.ini gpu -m command -a "nvidia-smi --query-gpu=name,driver_version,cuda_version,memory.total --format=csv"
 ```
 
+Test the configuration with:
+
+```bash
+# Check containerd config
+ansible gpu_nodes -m shell -a "containerd config dump | grep -A10 nvidia"
+
+# Verify runtime
+ansible gpu_nodes -m shell -a "nvidia-container-cli --version"
+```
+
 ## 🎛️ Customization
 
 ### Core Configuration Variables
@@ -417,3 +427,29 @@ kubectl get pods -n kube-system | grep nvidia-device-plugin
 ### Version-Specific Guides
 - [NVIDIA Driver Matrix](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/platform-support.html)
 - [Kubernetes Version Skew Policy](https://kubernetes.io/releases/version-skew-policy/)
+
+## Tested Environments
+
+✅ **Extensively validated** on:  
+- Rocky Linux 8.x/9.x  
+- NVIDIA GPUs (A100/H100) with:
+  - Driver v550+
+  - Containerd v1.7+
+  - Kubernetes v1.28+
+
+⚠️ **Requires additional validation** on:  
+- Ubuntu 20.04/22.04  
+  - Particularly with:
+    - SecureBoot configurations
+    - Alternative display managers (Wayland/X11)
+    - Non-NVIDIA GPU setups
+
+### Verification Matrix
+| Component       | Rocky Linux | Ubuntu |
+|-----------------|-------------|--------|
+| NVIDIA Drivers  | ✅          | ⚠️     |
+| Containerd      | ✅          | ⚠️     |
+| Kubernetes      | ✅          | ⚠️     |
+| MIG Partitioning| ✅          | N/A    |
+
+**Contributions welcome** for Ubuntu-specific testing and improvements!

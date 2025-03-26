@@ -37,3 +37,8 @@ nvidia_device_plugin:
 # docker_dry_run: "sudo dockerd --config-file=/etc/docker/daemon.json --dry-run"
 # containerd_config_validation: "sudo containerd config validate"
 # containerd_dry_run: "sudo containerd --config /etc/containerd/config.toml --state /run/containerd"
+
+nvidia_container_runtime_enabled: true
+nvidia_mig:
+  enabled: false
+  profiles: []

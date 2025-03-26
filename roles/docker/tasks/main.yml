@@ -3,14 +3,11 @@
 - name: Gather OS-specific facts
   setup:
     filter: "ansible_distribution*"
+  tags: [docker]
 
 - name: Include OS-specific prerequisites
   include_tasks: "prereqs_{{ ansible_distribution | lower }}.yml"
   tags: [docker, prereqs]
-
-- name: Configure Docker repositories
-  include_tasks: repos.yml
-  tags: [docker, repos]
 
 - name: Install Docker components
   include_tasks: install.yml

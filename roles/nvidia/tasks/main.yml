@@ -1,4 +1,4 @@
-# roles/nvidia/vars/main.yml
+# roles/nvidia/tasks/main.yml
 ---
 - name: Verify NVIDIA hardware
   command: lspci | grep -i nvidia
@@ -8,17 +8,21 @@
 
 - name: Add NVIDIA repository
   include_tasks: repos.yml
-  when: nvidia_hw.stdout != ""
+  when: 
+    - nvidia_hw.stdout != ""
+    - not ansible_check_mode
   tags: [nvidia, repos]
 
-- name: Install NVIDIA drivers
-  include_tasks: drivers.yml
+- name: Install NVIDIA components
+  include_tasks: install.yml  # Now includes both drivers and toolkit
   when: nvidia_hw.stdout != ""
-  tags: [nvidia, drivers]
+  tags: [nvidia, install]
 
 - name: Configure container runtime
   include_tasks: runtime.yml
-  when: nvidia_hw.stdout != ""
+  when: 
+    - nvidia_hw.stdout != ""
+    - nvidia_container_runtime_enabled | default(true) | bool
   tags: [nvidia, runtime]
 
 - name: Enable MIG (if configured)
@@ -32,4 +36,3 @@
   include_tasks: validate.yml
   when: nvidia_hw.stdout != ""
   tags: [nvidia, validate]
-  
