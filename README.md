@@ -169,6 +169,12 @@ kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.c
 kubectl get nodes -o json | jq '.items[].status.allocatable'
 ```
 
+- Check Ansible's path resolution with:
+
+```bash
+ansible -i inventory.ini reservations -m debug -a "msg={{ lookup('file', 'roles/common/tasks/rocky.yml') }}"
+````
+
 ### 7. Resources - NVIDIA-specific troubleshooting:
 - [NVIDIA Troubleshooting Guide](https://docs.nvidia.com/datacenter/tesla/troubleshooting-guide/index.html)
 - [Kubernetes Debugging Docs](https://kubernetes.io/docs/tasks/debug/)
