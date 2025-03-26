@@ -38,8 +38,17 @@ docker_dns:
 
 docker_icc: false
 docker_userland_proxy: false
+
+# Unified Proxy settings (Network + Kubernetes-aware)
 docker_proxy:
-  no_proxy: "{{ docker_network.no_proxy|join(',') }}"
+  http: null
+  https: null
+  no_proxy: >-
+    {{
+      (docker_network.no_proxy + [service_cidr, pod_network_cidr, '.svc', '.svc.cluster.local'])
+      | unique
+      | join(',')
+    }}
 
 # Runtime configuration (Kubernetes optimized)
 docker_default_runtime: "cri"
@@ -56,11 +65,6 @@ docker_log_driver: "json-file"
 docker_log_max_size: "100m"
 docker_log_max_file: "3"
 
-# Proxy settings (Kubernetes-aware)
-docker_proxy:
-  http: null
-  https: null
-  no_proxy: "{{ [service_cidr, pod_network_cidr, '.svc', '.svc.cluster.local'] | join(',') }}"
 
 # User management
 docker_users: []
