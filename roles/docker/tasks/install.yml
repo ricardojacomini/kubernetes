@@ -9,12 +9,32 @@
     state: present
     update_cache: yes
   when: ansible_distribution == 'Ubuntu'
+  tags: [docker, install]
 
-- name: Install Docker (Rocky)
-  yum:
-    name:
-      - docker-ce-{{ docker_version }}*
-      - docker-ce-cli-{{ docker_version }}*
-      - containerd.io
-    state: present
+- name: Handle Rocky Linux installation
+  block:
+    - name: Remove conflicting NVIDIA packages (GPU nodes only)
+      block:
+        - name: Check for CM-NVIDIA toolkit
+          command: rpm -q cm-nvidia-container-toolkit
+          register: cm_toolkit_check
+          ignore_errors: yes
+          changed_when: false
+
+        - name: Purge CM-NVIDIA toolkit
+          yum:
+            name: cm-nvidia-container-toolkit
+            state: absent
+            disable_gpg_check: yes
+          when: cm_toolkit_check.rc == 0
+          notify: restart docker
+
+    - name: Install Docker packages
+      yum:
+        name:
+          - docker-ce-{{ docker_version }}*
+          - docker-ce-cli-{{ docker_version }}*
+          - containerd.io
+        state: present
   when: ansible_distribution == 'Rocky'
+  tags: [docker, install]

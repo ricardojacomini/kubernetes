@@ -65,7 +65,6 @@ docker_log_driver: "json-file"
 docker_log_max_size: "100m"
 docker_log_max_file: "3"
 
-
 # User management
 docker_users: []
 docker_group: "docker"

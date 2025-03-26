@@ -5,11 +5,43 @@
     msg: "Unsupported Rocky Linux version. Expected 8.x, found {{ ansible_distribution_version }}"
   when: ansible_distribution_version is not version_compare('8', '>=')
 
-- name: Update all packages (Rocky Linux)
-  yum:
-    name: '*'
-    state: latest
-  tags: update
+- name: Update system packages (safe mode)
+  block:
+    - name: Update non-Mellanox packages (regular nodes)
+      yum:
+        name: '*'
+        state: latest
+      when: "'mlnx_nodes' not in group_names"
+      register: yum_update
+      tags: update
+      
+    - name: Update with exclusions (Mellanox/NVIDIA nodes)
+      yum:
+        name: '*'
+        exclude:
+          - opensm*
+          - libibverbs*
+          - ucx*
+          - perftest*
+          - mlnx*
+          - nvidia*
+        state: latest
+      when: "'mlnx_nodes' in group_names"
+      tags: update
+      register: yum_update
+      ignore_errors: yes  # Continue even if some packages fail
+
+  rescue:
+    - name: Notify about update issues
+      debug:
+        msg: "Package updates partially applied due to conflicts. Run remediation tags if needed."
+      tags: update
+      register: yum_update
+
+- name: Show update results
+  debug:
+    msg: "Updated {{ yum_update.changed | default(0) }} packages (skipped conflicted Mellanox packages)"
+  when: yum_update is changed
 
 - name: Install prerequisite packages
   yum:
