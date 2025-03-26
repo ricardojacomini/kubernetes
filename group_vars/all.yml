@@ -6,4 +6,13 @@ version_pins:
   nvidia_driver: "525.85.12"
   net.bridge.bridge-nf-call-ip6tables: 1
 
-"runtimes": {{ docker_config.runtimes | to_json }}
+docker_config:
+  runtimes:
+    nvidia:
+      path: "/usr/bin/nvidia-container-runtime"
+      runtimeArgs: []
+  default-runtime: "runc"
+  log-driver: "json-file"
+  log-opts:
+    max-size: "100m"
+    max-file: "3"
