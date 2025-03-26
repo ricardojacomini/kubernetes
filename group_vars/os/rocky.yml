@@ -2,13 +2,18 @@
 ---
 # Rocky Linux specific variables
 docker_packages:
-  - docker-ce-{{ docker_version }}*
-  - docker-ce-cli-{{ docker_version }}*
+ # - docker-ce-{{ docker_version }}*
+ # - docker-ce-cli-{{ docker_version }}*
+  - docker-ce
+  - docker-ce-cli
   - containerd.io
+  - docker-buildx-plugin  # Add if needed
 
 # Repository Configuration
 docker_repo_url: "https://download.docker.com/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
 docker_repo_gpgkey: "https://download.docker.com/linux/centos/gpg"
+
+
 
 # Kernel Modules
 kernel_modules_extra: []
@@ -38,3 +43,4 @@ system_packages:
   - device-mapper-persistent-data
   - lvm2
   - conntrack-tools
+

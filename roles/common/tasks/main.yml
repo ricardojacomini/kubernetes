@@ -5,13 +5,7 @@
   tags: preflight
 
 - name: Include OS-specific tasks
-  block:
-    - name: Load OS-specific configuration
-      include_tasks: "{{ (ansible_distribution | lower) ~ '.yml' }}"
-  rescue:
-    - name: Fail with helpful message
-      fail:
-        msg: "No configuration found for {{ ansible_distribution }}. Supported OS: Ubuntu, Rocky"
+  include_tasks: "{{ (ansible_distribution | lower) ~ '.yml' }}"
   when: ansible_distribution in ['Ubuntu', 'Rocky']
   tags: os-specific
 
