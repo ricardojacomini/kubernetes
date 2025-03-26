@@ -15,25 +15,18 @@
     mode: 0644
   notify: restart docker
 
-- name: Validate Docker configuration
-  command: >
-    docker daemon --config-file={{ docker_config_file | default('/etc/docker/daemon.json') }} --validate
+- name: Validate Docker configuration syntax
+  command: docker config validate {{ docker_config_file }}
   register: docker_validate
   changed_when: false
-  failed_when: 
-    - docker_validate.rc != 0
-    - "'error' in docker_validate.stderr"
+  failed_when: docker_validate.rc != 0
   tags: validation
-  when: not ansible_check_mode
 
-- name: Validate Docker config (Dry Run)
-  command: >
-    dockerd --config-file={{ docker_config_file | default('/etc/docker/daemon.json') }} --dry-run
+- name: Test Docker daemon startup (dry-run)
+  command: dockerd --validate --config-file={{ docker_config_file }}
   register: docker_dryrun
   changed_when: false
-  when:
-    - not ansible_check_mode
-    - ansible_distribution == 'Ubuntu'
+  when: not ansible_check_mode
   tags: validation
 
 - name: Backup existing config (if any)

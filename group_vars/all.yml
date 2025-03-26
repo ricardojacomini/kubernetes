@@ -5,3 +5,5 @@ version_pins:
   containerd: "1.7.0"
   nvidia_driver: "525.85.12"
   net.bridge.bridge-nf-call-ip6tables: 1
+
+"runtimes": {{ docker_config.runtimes | to_json }}

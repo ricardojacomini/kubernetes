@@ -84,18 +84,12 @@
 - name: Configure NVIDIA runtime for Docker
   block:
     - name: Configure Docker to use NVIDIA runtime
-      copy:
-        dest: {{ docker_config_file }}
-        content: |
-          {
-            "runtimes": {
-              "nvidia": {
-                "path": "/usr/bin/nvidia-container-runtime",
-                "runtimeArgs": []
-              }
-            },
-            "default-runtime": "runc"
-          }
+      template:
+        src: docker-daemon.json.j2
+        dest: "{{ docker_config_file }}"
+        owner: root
+        group: root
+        mode: 0644
       notify: Restart docker
 
     - name: Configure containerd for NVIDIA

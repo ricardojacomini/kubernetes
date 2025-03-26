@@ -28,6 +28,7 @@
   block:
     - name: Validate Docker config
       command: docker config validate -f {{ docker_config_file | default('/etc/docker/daemon.json') }}
+      
       when: not ansible_check_mode
       tags: validation
 
