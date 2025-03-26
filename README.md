@@ -114,6 +114,17 @@ kubernetes/
     ansible all -m include_role -a name=common tasks_from=validate.yml
     ```
 
+    **Best Practices to Avoid Reboots:**
+
+    ✅ Run all non-reboot steps in a single playbook to minimize interruptions:
+
+    ```bash
+    ansible-playbook -i inventory.ini playbooks/site.yml \
+      --tags common,docker,kubernetes \
+      --limit reservations --check
+    ```
+
+
 3. **Post-Deployment**:
 
     ```bash
