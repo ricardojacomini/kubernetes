@@ -5,6 +5,7 @@
     path: /etc/modules-load.d
     state: directory
     mode: 0755
+  tags: kernel
 
 - name: Configure kernel modules
   copy:
@@ -15,6 +16,7 @@
     group: root
     mode: 0644
   notify: load kernel modules
+  tags: kernel
 
 - name: Configure sysctl parameters
   sysctl:
@@ -24,3 +26,5 @@
     reload: yes
     state: present
   loop: "{{ sysctl_params | dict2items }}"
+  notify: "reload sysctl"
+  tags: kernel

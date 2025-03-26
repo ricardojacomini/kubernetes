@@ -7,36 +7,24 @@
 
 - name: Update system packages (safe mode)
   block:
-    - name: Update non-Mellanox packages (regular nodes)
-      yum:
-        name: '*'
-        state: latest
-      when: "'mlnx_nodes' not in group_names"
-      register: yum_update
-      tags: update
-      
-    - name: Update with exclusions (Mellanox/NVIDIA nodes)
+    - name: Update with smart exclusions
       yum:
         name: '*'
         exclude:
-          - opensm*
-          - libibverbs*
-          - ucx*
-          - perftest*
-          - mlnx*
-          - nvidia*
+          - opensm-libs-*.el8*
+          - libibverbs-*.el8*
+          - ucx-*.el8*
+          - perftest-*.el8*
         state: latest
-      when: "'mlnx_nodes' in group_names"
-      tags: update
       register: yum_update
-      ignore_errors: yes  # Continue even if some packages fail
+      ignore_errors: yes
+      tags: update
 
-  rescue:
-    - name: Notify about update issues
+    - name: Show update results
       debug:
-        msg: "Package updates partially applied due to conflicts. Run remediation tags if needed."
-      tags: update
-      register: yum_update
+        msg: "Updated {{ yum_update.changed | default(0) }} packages"
+      when: yum_update is changed
+  tags: update
 
 - name: Show update results
   debug:
