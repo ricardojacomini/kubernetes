@@ -1,0 +1,8 @@
+# In roles/nvidia/defaults/main.yml
+nvidia_runtime_options:
+  Runtime: "containerd"  # or "docker"
+  SystemdCgroup: true
+
+nvidia_runtime_name: "nvidia"
+nvidia_runtime_path: "/usr/bin/nvidia-container-runtime"
+nvidia_set_as_default: true
