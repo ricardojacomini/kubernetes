@@ -1,0 +1,131 @@
+# roles/common/tasks/rocky.yml
+---
+- name: Validate Rocky Linux version
+  fail:
+    msg: "Unsupported Rocky Linux version. Expected 8.x, found {{ ansible_distribution_version }}"
+  when: ansible_distribution_version is not version_compare('8', '>=')
+
+- name: Update all packages (Rocky Linux)
+  yum:
+    name: '*'
+    state: latest
+  tags: update
+
+- name: Install prerequisite packages
+  yum:
+    name: "{{ system_packages }}"
+    state: present
+  tags: prerequisites
+
+- name: Configure kernel modules for Containerd
+  blockinfile:
+    path: /etc/modules-load.d/containerd.conf
+    block: |
+      overlay
+      br_netfilter
+  notify: Restart containerd
+
+- name: Apply sysctl parameters
+  command: sysctl --system
+
+- name: Add Docker CE repository (Rocky Linux)
+  yum_repository:
+    name: docker-ce
+    description: Docker CE Stable
+    baseurl: "{{ docker_repo_url }}"
+    gpgkey: "{{ docker_repo_gpgkey }}"
+    gpgcheck: yes
+    enabled: yes
+  tags: docker-repo
+
+- name: Install Docker packages
+  yum:
+    name: "{{ docker_packages }}"
+    state: present
+  tags: docker-install
+
+- name: Check for NVIDIA GPU
+  shell: lspci | grep -q NVIDIA
+  register: gpu_check
+  changed_when: false
+  failed_when: false
+  tags: nvidia-detection
+
+- name: Set NVIDIA GPU fact
+  set_fact:
+    has_nvidia: "{{ gpu_check.rc == 0 }}"
+  tags: nvidia-detection
+
+- name: Configure NVIDIA repository (if GPU detected)
+  block:
+    - name: Add NVIDIA repository
+      get_url:
+        url: "{{ nvidia_repo_url }}"
+        dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+        mode: '0644'
+
+    - name: Import NVIDIA GPG key
+      rpm_key:
+        key: https://nvidia.github.io/nvidia-container-runtime/gpgkey
+        state: present
+
+    - name: Clean and rebuild YUM cache
+      command: yum clean all && yum makecache
+  when: has_nvidia
+  tags: nvidia-setup
+
+- name: Install NVIDIA Container Toolkit (if GPU detected)
+  yum:
+    name: "{{ nvidia_packages }}"
+    state: present
+  when: has_nvidia
+  tags: nvidia-install
+
+- name: Configure NVIDIA runtime for Docker
+  block:
+    - name: Configure Docker to use NVIDIA runtime
+      copy:
+        dest: {{ docker_config_file }}
+        content: |
+          {
+            "runtimes": {
+              "nvidia": {
+                "path": "/usr/bin/nvidia-container-runtime",
+                "runtimeArgs": []
+              }
+            },
+            "default-runtime": "runc"
+          }
+      notify: Restart docker
+
+    - name: Configure containerd for NVIDIA
+      blockinfile:
+        path: /etc/containerd/config.toml
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA runtime"
+        block: |
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+            runtime_type = "io.containerd.runc.v2"
+            privileged_without_host_devices = false
+            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+              BinaryName = "/usr/bin/nvidia-container-runtime"
+              SystemdCgroup = true
+      notify: Restart containerd
+  when: has_nvidia
+  tags: nvidia-config
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+  tags: service
+
+- name: Add current user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+  tags: user-config
+
+- name: Flush handlers
+  meta: flush_handlers

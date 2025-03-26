@@ -1,13 +1,47 @@
 # roles/docker/tasks/config.yml
+---
 - name: Ensure Docker config directory exists
   file:
-    path: "{{ docker_config_dir }}"
+    path: "{{ docker_config_dir | default('/etc/docker') }}"
     state: directory
     mode: 0755
 
-- name: Configure Docker daemon
+- name: Deploy Docker configuration
   template:
     src: config.yml.j2
-    dest: "{{ docker_config_file }}"
+    dest: "{{ docker_config_file | default('/etc/docker/daemon.json') }}"
+    owner: root
+    group: root
     mode: 0644
   notify: restart docker
+
+- name: Validate Docker configuration
+  command: >
+    docker daemon --config-file={{ docker_config_file | default('/etc/docker/daemon.json') }} --validate
+  register: docker_validate
+  changed_when: false
+  failed_when: 
+    - docker_validate.rc != 0
+    - "'error' in docker_validate.stderr"
+  tags: validation
+  when: not ansible_check_mode
+
+- name: Validate Docker config (Dry Run)
+  command: >
+    dockerd --config-file={{ docker_config_file | default('/etc/docker/daemon.json') }} --dry-run
+  register: docker_dryrun
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - ansible_distribution == 'Ubuntu'
+  tags: validation
+
+- name: Backup existing config (if any)
+  copy:
+    src: "{{ docker_config_file | default('/etc/docker/daemon.json') }}"
+    dest: "{{ docker_config_file | default('/etc/docker/daemon.json') }}.bak"
+    remote_src: yes
+  when:
+    - not ansible_check_mode
+    - (docker_config_file | default('/etc/docker/daemon.json')) is file
+  tags: backup

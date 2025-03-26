@@ -40,41 +40,128 @@ ml ansible-core
 or
 
 # Option 2 (if available):
+# Clone repository
 git clone https://github.com/your-repo/gpu-kubernetes-ansible.git
-cd gpu-kubernetes-ansible 
+cd gpu-kubernetes-ansible
 
-# Then
+# Install requirements
+python3 -m pip install -r requirements.txt
+ansible-galaxy install -r requirements.yml
 
-# First Install the required callback plugin
-ansible-galaxy collection install ansible.posix
-
-# run
+# Deploy (see full options below)
 ansible-playbook -i inventory.ini playbooks/site.yml
+
+# GPU-specific deployment
+ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
 ```
 
 ## 🏗️ Architecture Overview
 
 ```bash
 kubernetes/
-├── ansible.cfg              # Ansible configuration
-├── inventory.ini            # Host definitions
-├── group_vars/              # Group variables
-│   ├── all.yml             # Common configurations
-│   ├── ubuntu.yml          # Ubuntu-specific settings
-│   ├── rocky.yml           # Rocky Linux settings
-│   ├── gpu.yml             # GPU node configurations
-│   └── monitoring.yml      # Monitoring stack configs
+├── 📜 ansible.cfg             # Ansible configuration
+├── inventory.ini           # Host definitions
+├── 📂 group_vars/             # Group-specific variables
+│   ├── 🏷️ all.yml             # Common configurations
+│   ├── 🎮 gpu.yml             # GPU node configurations
+│   ├── a100-node.yml       # NVIDIA A100 GPU node configurations
+│   ├── k8s-cluster.yml     # Kubernetes cluster network settings
+│   ├── monitoring.yml      # Monitoring stack configs
+│   └── os/                 # OS-specific variables
+│        ├── rocky.yml      # Rocky Linux configurations
+│        └── ubuntu.yml     # Ubuntu configurations
 ├── host_vars/              # Host-specific overrides
-│   ├── a100-node.yml       # A100-specific settings
+│   ├── gpu-nodes.yml       # A100-specific settings
 │   └── high-density.yml    # High-density node tweaks
 ├── roles/                  # Ansible roles
-│   ├── common/             # Base system setup
-│   ├── docker/             # Container runtime
-│   ├── kubernetes/         # K8s components
-│   └── nvidia/             # GPU optimization
+│   ├── common/             # Core system configuration (kernel, repos, validation)
+│   │      └── tasks/       # NEW: Configuration validation tasks
+│   │           ├── validate.yml 
+│   │           └──   ...   # Other common tasks
+│   ├── docker/             # Container runtime setup
+│   ├── kubernetes/         # Cluster orchestration components
+│   │      └── templates/   # Docker daemon JSON template
+│   │           └── config.yml.j2
+│   └── nvidia/             # GPU acceleration stack
 └── playbooks/
     └── site.yml            # Master deployment playbook
-```    
+```  
+
+## Validation Workflow
+
+### When Validations Run
+1. **Pre-Deployment**:
+   - ✅ Hardware compatibility (GPU, RAM)
+   - ✅ OS version checks
+   - ✅ Network connectivity
+
+2. **Post-Configuration**:
+    ```yaml
+    # roles/common/tasks/main.yml
+    - include_tasks: repos.yml    # Package repositories
+    - include_tasks: validate.yml # Config validation << NEW
+    - include_tasks: nvidia.yml   # GPU setup
+    ```
+
+    ```bash
+    # Run all validations
+    ansible-playbook playbooks/site.yml --tags validation
+
+    # Skip validations (not recommended)
+    ansible-playbook playbooks/site.yml --skip-tags validation
+
+    # Verify container runtime configs
+    ansible all -m include_role -a name=common tasks_from=validate.yml
+    ```
+
+3. **Post-Deployment**:
+
+    ```bash
+    # Cluster health check
+    kubectl get nodes -o wide
+    kubectl get pods -A
+    ```
+
+4. **Execution Order**:
+- Estimated timing: Typical Deployment Timeline
+    | Phase | Duration | Notes |
+    |-------|----------|-------|
+    | Preflight | 2min | Fast validation |
+    | GPU Setup | 15-30min | Driver install may require reboot |
+    | K8s Bootstrap | 5min | Network-dependent |
+
+- Visual workflow diagram:
+  ```mermaid
+  graph TD
+      A[Preflight Checks] --> B[Base System]
+      B                   --> C[Container Runtime]
+      C                   --> D[GPU Setup]
+      D                   --> E[Kubernetes Bootstrap]
+      E                   --> F[Master Init]
+      F                   --> G[Worker Join]
+  ```
+
+5. **Customization Section**:
+- Warning about required reboots:
+  ```markdown
+  ⚠️ 🔥 **Reboot Required**: GPU driver changes require node reboots. Schedule accordingly.
+  ```
+
+6. Troubleshooting
+- Quick copy-paste diagnostics:
+
+```bash
+# Get all node conditions
+kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.conditions[?(@.status=="True")].type}{"\n"}{end}'
+
+# Check GPU allocatable resources
+kubectl get nodes -o json | jq '.items[].status.allocatable'
+```
+
+### 7. Resources - NVIDIA-specific troubleshooting:
+- [NVIDIA Troubleshooting Guide](https://docs.nvidia.com/datacenter/tesla/troubleshooting-guide/index.html)
+- [Kubernetes Debugging Docs](https://kubernetes.io/docs/tasks/debug/)
+
 ---
 
 ## 📋 Inventory Configuration
@@ -296,9 +383,20 @@ kubectl describe node <gpu-node> | grep -A10 'Capacity:\|Allocatable:'
 kubectl get pods -n kube-system | grep nvidia-device-plugin
 ```
 
+### Quick Fixes
+| Symptom | Solution |
+|---------|----------|
+| GPU nodes not recognized | `ansible gpu -m reboot` then re-run playbook with `--tags nvidia` |
+| Image pull errors | Verify `docker_proxy` settings in `group_vars/all.yml` |
+
+
 ## 📚 Resources
 
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/overview.html)
 - [Ansible Best Practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html)
 - [Kubernetes GPU Scheduling](https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus)
+
+### Version-Specific Guides
+- [NVIDIA Driver Matrix](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/platform-support.html)
+- [Kubernetes Version Skew Policy](https://kubernetes.io/releases/version-skew-policy/)

@@ -1,4 +1,4 @@
-# group_vars/ubuntu.yml
+# group_vars/os/ubuntu.yml
 
 ---
 # Ubuntu specific variables

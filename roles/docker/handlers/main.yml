@@ -1,0 +1,6 @@
+# In roles/docker/handlers/main.yml
+- name: restart docker
+  systemd:
+    name: docker
+    state: restarted
+  when: docker_validate is not defined or docker_validate.rc == 0

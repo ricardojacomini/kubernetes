@@ -1,0 +1,126 @@
+# roles/common/tasks/ubuntu.yml
+---
+- name: Validate Ubuntu version
+  fail:
+    msg: "Unsupported Ubuntu version. Expected 24.04, found {{ ansible_distribution_version }}"
+  when: ansible_distribution_version != '24.04'
+  tags: validation
+
+- name: Update all packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+  tags: update
+
+- name: Install prerequisite packages
+  apt:
+    name: "{{ system_packages }}"
+    state: present
+  tags: prerequisites
+
+- name: Configure kernel modules
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      {{ kernel_modules_extra | join('\n') }}
+      overlay
+      br_netfilter
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart containerd
+
+- name: Apply sysctl parameters
+  command: sysctl --system
+
+- name: Install Docker packages
+  apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: yes
+  tags: docker-install
+
+- name: Check for NVIDIA GPU
+  shell: lspci | grep -q NVIDIA
+  register: gpu_check
+  changed_when: false
+  failed_when: false
+  when: "'gpu' in group_names"
+  tags: nvidia-detection
+
+- name: Set NVIDIA GPU fact
+  set_fact:
+    has_nvidia: "{{ gpu_check.rc == 0 }}"
+  when: "'gpu' in group_names"
+  tags: nvidia-detection
+
+- name: Configure NVIDIA repository (if GPU detected)
+  block:
+    - name: Add NVIDIA GPG key
+      apt_key:
+        url: https://nvidia.github.io/libnvidia-container/gpgkey
+        state: present
+
+    - name: Add NVIDIA repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] {{ nvidia_repo_url }} /"
+        state: present
+        filename: nvidia-container-toolkit
+        update_cache: yes
+  when: has_nvidia|default(false)
+  tags: nvidia-setup
+
+- name: Install NVIDIA packages (if GPU detected)
+  apt:
+    name: "{{ nvidia_packages }}"
+    state: present
+  when: has_nvidia|default(false)
+  tags: nvidia-install
+
+- name: Configure NVIDIA runtime
+  block:
+    - name: Configure Docker for NVIDIA
+      copy:
+        dest: {{ docker_config_file }}
+        content: |
+          {
+            "runtimes": {
+              "nvidia": {
+                "path": "/usr/bin/nvidia-container-runtime",
+                "runtimeArgs": []
+              }
+            }
+          }
+      notify: Restart docker
+
+    - name: Configure containerd for NVIDIA
+      blockinfile:
+        path: /etc/containerd/config.toml
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA runtime"
+        block: |
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+            runtime_type = "io.containerd.runc.v2"
+            privileged_without_host_devices = false
+            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+              BinaryName = "/usr/bin/nvidia-container-runtime"
+              SystemdCgroup = true
+      notify: Restart containerd
+  when: has_nvidia|default(false)
+  tags: nvidia-config
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+  tags: service
+
+- name: Add current user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+  tags: user-config
+
+- name: Flush handlers
+  meta: flush_handlers

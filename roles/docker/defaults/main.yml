@@ -1,8 +1,8 @@
 # roles/docker/defaults/main.yml
 ---
 # Docker version and components
-docker_version: "24.0"  # Default version (will use latest 24.0.x)
-docker_edition: "ce"    # Community Edition
+docker_version: "24.0"
+docker_edition: "ce"
 docker_components:
   - docker-ce
   - docker-ce-cli
@@ -24,29 +24,43 @@ docker_config_dir: "/etc/docker"
 docker_config_file: "{{ docker_config_dir }}/daemon.json"
 containerd_config_file: "/etc/containerd/config.toml"
 
-# Storage driver configuration
+# Storage configuration
 docker_storage_driver: "overlay2"
 docker_storage_opts: []
+docker_data_root: "/var/lib/docker"
 
-# Network configuration
-docker_bip: null  # Example: "172.17.0.1/16"
-docker_mtu: null
+# Network configuration (fully integrated with k8s-cluster.yml)
+docker_bip: "{{ docker_network.bip }}"
+docker_mtu: "{{ docker_network.mtu }}"
 docker_dns:
-  - "8.8.8.8"
-  - "8.8.4.4"
+  - "{{ cluster_dns.primary }}"
+  - "{{ cluster_dns.secondary }}"
 
-# Runtime configuration
-docker_default_runtime: "runc"
+docker_icc: false
+docker_userland_proxy: false
+docker_proxy:
+  no_proxy: "{{ docker_network.no_proxy|join(',') }}"
+
+# Runtime configuration (Kubernetes optimized)
+docker_default_runtime: "cri"
 docker_runtimes:
+  cri:
+    path: "/usr/bin/containerd-shim"
+    options: {}
   nvidia:
     path: "/usr/bin/nvidia-container-runtime"
     options: {}
 
-# Proxy settings
+# Logging configuration
+docker_log_driver: "json-file"
+docker_log_max_size: "100m"
+docker_log_max_file: "3"
+
+# Proxy settings (Kubernetes-aware)
 docker_proxy:
   http: null
   https: null
-  no_proxy: null
+  no_proxy: "{{ [service_cidr, pod_network_cidr, '.svc', '.svc.cluster.local'] | join(',') }}"
 
 # User management
 docker_users: []
@@ -57,6 +71,10 @@ docker_group_gid: null
 docker_service_state: "started"
 docker_service_enabled: true
 
+# Kubernetes integration
+docker_kubernetes_cri: true
+docker_cri_socket: "unix:///run/containerd/containerd.sock"
+
 # NVIDIA GPU support
 docker_nvidia_enabled: false
 nvidia_container_toolkit_version: "latest"
@@ -65,7 +83,8 @@ nvidia_container_toolkit_version: "latest"
 docker_registry_mirrors: []
 docker_insecure_registries: []
 
-# Live restore settings
+# Advanced settings
 docker_live_restore: true
-docker_icc: false
-docker_userland_proxy: false
+docker_buildkit_enabled: true
+docker_experimental: false
+docker_debug: false

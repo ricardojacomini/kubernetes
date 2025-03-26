@@ -1,4 +1,4 @@
-# group_vars/rocky.yml
+# group_vars/os/rocky.yml
 ---
 # Rocky Linux specific variables
 docker_packages:
