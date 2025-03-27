@@ -66,7 +66,10 @@
       tags: verify
 
 - name: Verify GPU resources
-  command: kubectl describe node {{ inventory_hostname }} | grep nvidia.com/gpu
-  register: gpu_check
-  failed_when: "'nvidia.com/gpu' not in gpu_check.stdout"
-  when: "'gpu' in group_names"
+  hosts: gpu
+  tasks:
+    - name: Check GPU allocation
+      command: kubectl describe node {{ inventory_hostname }} | grep nvidia.com/gpu
+      register: gpu_check
+      failed_when: "'nvidia.com/gpu' not in gpu_check.stdout"
+      changed_when: false
