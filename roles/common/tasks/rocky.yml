@@ -35,7 +35,7 @@
 
     - name: Install base packages
       yum:
-        name: "{{ ['containerd', 'curl', 'git'] + system_packages }}"
+        name: "{{ ['curl', 'git'] + system_packages }}"
         state: present
       tags: [prerequisites, common]
 
