@@ -34,18 +34,11 @@
       tags: update
 
     - name: Install base packages
-      system_packages:
-        - containerd
       yum:
-        name:
-          - yum-utils
-          - device-mapper-persistent-data
-          - lvm2
-          - curl
-          - git
-          - "{{ system_packages }}"
+        name: "{{ ['containerd', 'curl', 'git'] + system_packages }}"
         state: present
       tags: [prerequisites, common]
+
 
     - name: Ensure modules directory exists
       file:
