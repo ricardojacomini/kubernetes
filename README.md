@@ -398,7 +398,7 @@ kubectl get pods -n kube-system | grep nvidia-device-plugin
 ### Quick Fixes
 | Symptom | Solution |
 |---------|----------|
-| GPU nodes not recognized | `ansible gpu -m reboot` then re-run playbook with `--tags nvidia` |
+| GPU nodes not recognized | `ansible gpu -m reboot` then re-run playbook with `--tags container` |
 | Image pull errors | Verify `docker_proxy` settings in `group_vars/main.yml` |
 
 

@@ -1,0 +1,17 @@
+# roles/container/tasks/configure.yml
+
+---
+- name: Configure container runtime
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  when: container_runtime == 'docker'
+  notify: restart docker
+
+- name: Set up kernel modules
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter

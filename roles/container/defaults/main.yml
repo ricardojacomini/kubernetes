@@ -1,0 +1,17 @@
+# roles/container/defaults/main.yml
+# Container runtime selection
+container_runtime: "docker"  # docker or containerd
+
+# Docker configuration
+docker_version: "20.10" 
+docker_repo_url: "https://download.docker.com/linux/centos/docker-ce.repo"
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+
+# NVIDIA configuration
+nvidia_driver_version: "535.86.05"
+nvidia_container_toolkit_version: "1.14.1"
+nvidia_repo_url: "https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo"
+

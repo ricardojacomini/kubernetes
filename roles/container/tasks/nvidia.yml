@@ -1,0 +1,34 @@
+# roles/container/tasks/nvidia.yml
+#
+---
+- name: Configure NVIDIA repository
+  ansible.builtin.get_url:
+    url: "{{ nvidia_repo_url }}"
+    dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+
+- name: Import NVIDIA GPG key
+  shell: |
+    rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
+    dnf clean all
+    dnf makecache
+
+- name: Install NVIDIA Container Toolkit
+  package:
+    name: nvidia-container-toolkit
+    state: present
+    enablerepo: nvidia-container-toolkit
+
+- name: Configure NVIDIA runtime
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "runtimes": {
+          "nvidia": {
+            "path": "/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+          }
+        },
+        "default-runtime": "nvidia"
+      }
+  notify: restart docker

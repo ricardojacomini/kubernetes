@@ -1,0 +1,26 @@
+# roles/container/tasks/install.yml
+---
+- name: Add Docker repository
+  ansible.builtin.get_url:
+    url: "{{ docker_repo_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+  when: container_runtime == 'docker'
+
+- name: Install Docker packages
+  package:
+    name: "{{ docker_packages }}"
+    state: present
+  vars:
+    docker_packages: >-
+      {% if ansible_distribution == 'Rocky' %}
+      ["docker-ce", "docker-ce-cli", "containerd.io"]
+      {% else %}
+      ["docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin"]
+      {% endif %}
+
+- name: Start and enable Docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  when: container_runtime == 'docker'

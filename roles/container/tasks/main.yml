@@ -1,0 +1,36 @@
+# roles/container/tasks/main.yml
+---
+- name: Set OS-specific variables
+  set_fact:
+    # Package manager selection
+    pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
+    
+    # NVIDIA repo URL based on OS
+    nvidia_repo_url: >-
+      {% if ansible_distribution == 'Rocky' %}
+      https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+      {% else %}
+      https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
+      {% endif %}
+
+- name: Check for NVIDIA GPU
+  shell: lspci | grep -q NVIDIA
+  register: gpu_check
+  changed_when: false
+  failed_when: false
+  tags: nvidia
+
+- name: Set GPU fact
+  set_fact:
+    has_nvidia: "{{ gpu_check.rc == 0 }}"
+  tags: nvidia
+
+- include_tasks: install.yml
+  tags: install
+
+- include_tasks: nvidia.yml
+  when: has_nvidia
+  tags: nvidia
+
+- include_tasks: configure.yml
+  tags: configure

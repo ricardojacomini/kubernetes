@@ -1,0 +1,19 @@
+# roles/container/templates/daemon.json.j2
+
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2",
+  {% if has_nvidia %}
+  "runtimes": {
+    "nvidia": {
+      "path": "/usr/bin/nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  },
+  {% endif %}
+  "live-restore": true
+}

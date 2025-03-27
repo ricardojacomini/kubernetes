@@ -13,6 +13,7 @@ versions:
 # Docker Defaults
 docker_config:
   default-runtime: "runc"
+  cgroupdriver: systemd
   runtimes:
     nvidia:
       path: "/usr/bin/nvidia-container-runtime"
@@ -26,6 +27,14 @@ docker_config:
     opts:
       - "dm.basesize=20G"
       - "dm.mkfsarg=-b 4096"
+
+# OS detection based variables
+nvidia_packages: >-
+  {% if ansible_distribution == 'Rocky' %}
+  ["nvidia-container-toolkit"]
+  {% else %}
+  ["nvidia-container-toolkit", "nvidia-docker2"]
+  {% endif %}
 
 # System Configuration
 kernel:
