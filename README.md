@@ -57,8 +57,6 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
 
 # 📁 Kubernetes Cluster Deployment with Ansible
 
-![Kubernetes Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Kubernetes_logo_without_workmark.svg/1200px-Kubernetes_logo_without_workmark.svg.png)
-
 ##  🏗️ Project Structure
 
 ```text
@@ -364,7 +362,7 @@ Nodes Not Joining Cluster
 # Check kubelet logs
 journalctl -u kubelet -n 100 --no-pager
 
-# Verify NVIDIA driver and runtime status
+# Verify certificates
 openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout```
 ```
 
