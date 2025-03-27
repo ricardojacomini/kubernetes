@@ -1,0 +1,12 @@
+# roles/docker/handlers/main.yml
+---
+# ======================
+# Handlers Section
+# ======================
+- name: Restart Docker
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+  when: >-
+    (docker_validate is not defined or docker_validate.rc == 0) and
+    (docker_restart_needed | default(false))
