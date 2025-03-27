@@ -295,7 +295,7 @@ ansible gpu_nodes -m shell -a "nvidia-container-cli --version"
 Change CNI Plugin to Cilium:
 
 ```yaml
-# group_vars/all.yml
+# group_vars/main.yml
 pod_network: "cilium"
 pod_network_cidr: "10.0.0.0/16"
 cilium:
@@ -307,7 +307,7 @@ cilium:
 Configure Kubernetes Resource Reservations:
 
 ```yaml
-# group_vars/all.yml
+# group_vars/main.yml
 kubelet_reserved:
   cpu: "500m"
   memory: "1Gi"
@@ -331,7 +331,7 @@ nvidia_mig:
 for cluster-wide networking
 
 ```yaml
-# group_vars/all.yml 
+# group_var/main.yml 
 pod_network: "cilium"
 pod_network_cidr: "10.0.0.0/16"
 cilium:
@@ -399,7 +399,7 @@ kubectl get pods -n kube-system | grep nvidia-device-plugin
 | Symptom | Solution |
 |---------|----------|
 | GPU nodes not recognized | `ansible gpu -m reboot` then re-run playbook with `--tags nvidia` |
-| Image pull errors | Verify `docker_proxy` settings in `group_vars/all.yml` |
+| Image pull errors | Verify `docker_proxy` settings in `group_vars/main.yml` |
 
 
 ## 📚 Resources
