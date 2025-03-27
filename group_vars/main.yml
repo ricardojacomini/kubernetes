@@ -1,0 +1,61 @@
+# group_vars/main.yml
+---
+# Version Pinnings
+versions:
+  kubernetes: "1.28.0"
+  containerd: "1.7.0"
+  docker: "24.0"
+  nvidia:
+    driver: "525.85.12"
+    toolkit: "v0.14.1"
+    device_plugin: "v0.14.1"
+
+# Docker Defaults
+docker_config:
+  default-runtime: "runc"
+  runtimes:
+    nvidia:
+      path: "/usr/bin/nvidia-container-runtime"
+      runtimeArgs: []
+  log-driver: "json-file"
+  log-opts:
+    max-size: "100m"
+    max-file: "3"
+  storage:
+    driver: "overlay2"
+    opts:
+      - "dm.basesize=20G"
+      - "dm.mkfsarg=-b 4096"
+
+# System Configuration
+kernel:
+  required_modules: ["overlay", "br_netfilter"]
+  sysctl:
+    settings:
+      net.bridge.bridge-nf-call-ip6tables: 1
+      net.ipv4.ip_forward: 1
+    config_file: "/etc/sysctl.d/99-k8s.conf"
+
+    
+# Monitoring Base
+monitoring_stack:
+  nvidia:
+    dcgm:
+      enabled: true
+      version: "3.1.6"
+    dcgm_exporter:
+      enabled: true
+      version: "3.1.5"
+      port: 9400
+      metrics:
+        - "DCGM_FI_DEV_GPU_UTIL"
+        - "DCGM_FI_DEV_MEM_COPY_UTIL"
+    prometheus: true
+    grafana: true
+
+# Offline Mode Defaults
+offline_repos:
+  kubernetes:
+    ubuntu:
+      gpg_key: "file:///opt/pki/kubernetes-key.gpg"
+      repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] file:///opt/repos/kubernetes /"

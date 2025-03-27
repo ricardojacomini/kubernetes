@@ -1,5 +1,21 @@
 # roles/kubernetes/tasks/worker.yml
 ---
+- name: Install Kubernetes packages
+  package:
+    name:
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
+    state: present
+
+- name: Configure kubelet
+  template:
+    src: kubelet.conf.j2
+    dest: /etc/sysconfig/kubelet
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart kubelet
+
 - name: Add NVIDIA repository (Ubuntu)
   apt_repository:
     repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$(ARCH) /"
@@ -21,3 +37,15 @@
     gpgcheck: true
     enabled: true
   when: ansible_distribution == 'Rocky'
+
+- name: Join worker to cluster
+  command: "{{ lookup('file', '/tmp/join-command.sh') }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  when: inventory_hostname in groups['workers']
+
+- name: Configure containerd for Kubernetes
+  template:
+    src: containerd.conf.j2
+    dest: /etc/containerd/config.toml
+  notify: restart containerd

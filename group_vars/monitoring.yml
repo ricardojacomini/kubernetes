@@ -1,7 +1,9 @@
 # group_vars/monitoring.yml
-# group_vars/monitoring.yml
 ---
 monitoring_stack:
+  versions:
+    dcgm: "3.1.6"
+    dcgm_exporter: "3.1.5"
   nvidia:
     dcgm: true
     dcgm_exporter: true

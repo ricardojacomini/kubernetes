@@ -55,37 +55,29 @@ ansible-playbook -i inventory.ini playbooks/site.yml
 ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
 ```
 
-## 🏗️ Architecture Overview
+# 📁 Kubernetes Cluster Deployment with Ansible
 
-```bash
-kubernetes/
-├── 📜 ansible.cfg             # Ansible configuration
-├── inventory.ini           # Host definitions
-├── 📂 group_vars/             # Group-specific variables
-│   ├── 🏷️ all.yml             # Common configurations
-│   ├── 🎮 gpu.yml             # GPU node configurations
-│   ├── a100-node.yml       # NVIDIA A100 GPU node configurations
-│   ├── k8s-cluster.yml     # Kubernetes cluster network settings
-│   ├── monitoring.yml      # Monitoring stack configs
-│   └── os/                 # OS-specific variables
-│        ├── rocky.yml      # Rocky Linux configurations
-│        └── ubuntu.yml     # Ubuntu configurations
-├── host_vars/              # Host-specific overrides
-│   ├── gpu-nodes.yml       # A100-specific settings
-│   └── high-density.yml    # High-density node tweaks
-├── roles/                  # Ansible roles
-│   ├── common/             # Core system configuration (kernel, repos, validation)
-│   │      └── tasks/       # NEW: Configuration validation tasks
-│   │           ├── validate.yml 
-│   │           └──   ...   # Other common tasks
-│   ├── docker/             # Container runtime setup
-│   ├── kubernetes/         # Cluster orchestration components
-│   │      └── templates/   # Docker daemon JSON template
-│   │           └── config.yml.j2
-│   └── nvidia/             # GPU acceleration stack
-└── playbooks/
-    └── site.yml            # Master deployment playbook
-```  
+![Kubernetes Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Kubernetes_logo_without_workmark.svg/1200px-Kubernetes_logo_without_workmark.svg.png)
+
+##  🏗️ Project Structure
+
+```text
+├── 📜 ansible.cfg            # Ansible configuration
+├── 📂 group_vars/            # Group-specific variables
+│   ├── 🎮 k8s-cluster.yml    # Cluster-wide Kubernetes configuration
+│   ├── 🏷️ main.yml           # Common variables across all hosts
+│   ├── 📊 monitoring.yml     # Monitoring stack configuration
+│   ├── 🪨 rocky.yml          # Rocky Linux specific settings
+│   └── 🐧 ubuntu.yml         # Ubuntu specific settings
+├── 📂 inventory/             # Inventory management
+│   └── 🏭 production.ini     # Production inventory file
+├── 📂 playbooks/             # Deployment playbooks
+│   └── ▶️ site.yml           # Main deployment playbook
+└── 📂 roles/                 # Ansible roles
+    ├── ⚙️ common/            # Base system configuration
+    ├── 🐳 docker/            # Docker installation and config
+    ├── ☸️ kubernetes/        # Kubernetes cluster deployment
+    └── 🎮 nvidia/            # NVIDIA GPU configuration
 
 ## Validation Workflow
 
@@ -95,13 +87,7 @@ kubernetes/
    - ✅ OS version checks
    - ✅ Network connectivity
 
-2. **Post-Configuration**:
-    ```yaml
-    # roles/common/tasks/main.yml
-    - include_tasks: repos.yml    # Package repositories
-    - include_tasks: validate.yml # Config validation << NEW
-    - include_tasks: nvidia.yml   # GPU setup
-    ```
+2. **Pre-Configuration**:
 
     ```bash
     # Run all validations
@@ -294,18 +280,18 @@ ansible gpu_nodes -m shell -a "nvidia-container-cli --version"
 
 | Variable | File | Description | Default | Valid Options |
 |----------|------|-------------|---------|---------------|
-| `k8s_version` | `all.yml` | Kubernetes version | `1.28.0` | Any supported version |
-| `container_runtime` | `all.yml` | Container runtime | `containerd` | `containerd`, `docker` |
-| `pod_network` | `all.yml` | CNI plugin | `calico` | `calico`, `flannel`, `cilium` |
-| `pod_network_cidr` | `all.yml` | Pod IP range | `10.244.0.0/16` | Valid CIDR range |
+| `k8s_version` | `group_vars/main.ymll` | Kubernetes version | `1.28.0` | Any supported version |
+| `container_runtime` | `group_vars/main.yml` | Container runtime | `containerd` | `containerd`, `docker` |
+| `pod_network` | `group_vars/main.yml` | CNI plugin | `calico` | `calico`, `flannel`, `cilium` |
+| `pod_network_cidr` | `group_vars/main.yml` | Pod IP range | `192.168.1.0/24` | Valid CIDR range |
 
 ### GPU-Specific Variables
 
 | Variable | File | Description | Default |
 |----------|------|-------------|---------|
 | `nvidia_runtime_class` | `roles/nvidia/vars/main.yml` | GPU pod scheduling class | `nvidia` |
-| `nvidia_mig_enabled` | `gpu-nodes.yml` | Enable MIG partitioning | `false` |
-| `nvidia_driver_version` | `gpu.yml` | Driver version | `535.86.05` |
+| `nvidia_mig_enabled` | `group_vars/main.yml` | Enable MIG partitioning | `false` |
+| `nvidia_driver_version` | group_vars/main.ymll` | Driver version | `535.86.05` |
 
 Change CNI Plugin to Cilium:
 
@@ -363,10 +349,10 @@ cilium:
 
 ```bash
 ### Ubuntu nodes
-ansible-playbook playbooks/site.yml -l ubuntu_nodes
+ansible-playbook playbooks/site.yml -l ubuntu
 
 ### Rocky nodes
-ansible-playbook playbooks/site.yml -l rocky_nodes
+ansible-playbook playbooks/site.yml -l rocky
 ````
 
 ## 🛠 Troubleshooting Guide
@@ -378,7 +364,7 @@ Nodes Not Joining Cluster
 # Check kubelet logs
 journalctl -u kubelet -n 100 --no-pager
 
-# Verify certificates
+# Verify NVIDIA driver and runtime status
 openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout```
 ```
 

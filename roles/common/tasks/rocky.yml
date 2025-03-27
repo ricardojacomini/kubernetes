@@ -1,13 +1,26 @@
 # roles/common/tasks/rocky.yml
 ---
-- name: Validate Rocky Linux version
-  fail:
-    msg: "Unsupported Rocky Linux version. Expected 8.x, found {{ ansible_distribution_version }}"
-  when: ansible_distribution_version is not version_compare('8', '>=')
-
-- name: Update system packages (safe mode)
+- name: Preflight checks for Rocky
   block:
-    - name: Update with smart exclusions
+    - name: Verify system architecture
+      assert:
+        that: ansible_architecture == "x86_64"
+        msg: "Only x86_64 architecture is supported"
+
+    - name: Check minimum memory
+      assert:
+        that: ansible_memtotal_mb >= 4096
+        msg: "At least 4GB RAM required"
+
+    - name: Validate Rocky version
+      fail:
+        msg: "Unsupported Rocky Linux version. Expected 8.x, found {{ ansible_distribution_version }}"
+      when: ansible_distribution_version is not version_compare('8', '>=')
+  tags: preflight
+
+- name: System configuration
+  block:
+    - name: Update system packages (safe mode)
       yum:
         name: '*'
         exclude:
@@ -20,160 +33,239 @@
       ignore_errors: yes
       tags: update
 
-    - name: Show update results
-      debug:
-        msg: "Updated {{ yum_update.changed | default(0) }} packages"
-      when: yum_update is changed
-  tags: update
-
-- name: Show update results
-  debug:
-    msg: "Updated {{ yum_update.changed | default(0) }} packages (skipped conflicted Mellanox packages)"
-  when: yum_update is changed
-
-- name: Install prerequisite packages
-  yum:
-    name: "{{ system_packages }}"
-    state: present
-  tags: prerequisites
-
-- name: Install base packages for Rocky Linux
-  yum:
-    name:
-      - yum-utils
-      - device-mapper-persistent-data
-      - lvm2
-      - curl
-      - git
-    state: present
-  tags: [common, prereqs]
-
-- name: Configure Docker CE repository (Rocky Linux)
-  yum_repository:
-    name: docker-ce
-    description: Docker CE Stable
-    baseurl: "https://download.docker.com/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
-    gpgkey: "https://download.docker.com/linux/centos/gpg"
-    gpgcheck: yes
-    enabled: yes
-  tags: [common, docker-repo]
-  when: "'docker' in ansible_run_tags"  # Only run when Docker role is included
-
-- name: Configure kernel modules for Containerd
-  blockinfile:
-    path: /etc/modules-load.d/containerd.conf
-    block: |
-      overlay
-      br_netfilter
-  notify: Restart containerd
-
-- name: Apply sysctl parameters
-  command: sysctl --system
-
-- name: Add Docker CE repository (Rocky Linux)
-  yum_repository:
-    name: docker-ce
-    description: Docker CE Stable
-    baseurl: "{{ docker_repo_url }}"
-    gpgkey: "{{ docker_repo_gpgkey }}"
-    gpgcheck: yes
-    enabled: yes
-  tags: docker-repo
-
-- name: Install Docker packages
-  yum:
-    name: "{{ docker_packages }}"
-    state: present
-  tags: docker-install
-
-- name: Check for NVIDIA GPU
-  shell: lspci | grep -q NVIDIA
-  register: gpu_check
-  changed_when: false
-  failed_when: false
-  tags: nvidia-detection
-
-- name: Set NVIDIA GPU fact
-  set_fact:
-    has_nvidia: "{{ gpu_check.rc == 0 }}"
-  tags: nvidia-detection
-
-- name: Configure NVIDIA repository (if GPU detected)
-  block:
-    - name: Add NVIDIA repository
-      get_url:
-        url: "{{ nvidia_repo_url }}"
-        dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-        mode: '0644'
-
-    - name: Import NVIDIA GPG key
-      rpm_key:
-        key: https://nvidia.github.io/nvidia-container-runtime/gpgkey
+    - name: Install base packages
+      system_packages:
+        - containerd
+      yum:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - curl
+          - git
+          - "{{ system_packages }}"
         state: present
+      tags: [prerequisites, common]
 
-    - name: Clean and rebuild YUM cache
-      command: yum clean all && yum makecache
-  when: has_nvidia
-  tags: nvidia-setup
+    - name: Ensure modules directory exists
+      file:
+        path: /etc/modules-load.d
+        state: directory
+        mode: 0755
+      tags: kernel
 
-- name: Install NVIDIA driver prerequisites (Rocky Linux)
-  yum:
-    name:
-      - kernel-devel-{{ ansible_kernel }}
-      - kernel-headers-{{ ansible_kernel }}
-      - gcc
-      - make
-      - dkms
-    state: present
-  when: "'gpu' in group_names"
-  tags: [common, nvidia-prereqs]
-
-- name: Install NVIDIA Container Toolkit (if GPU detected)
-  yum:
-    name: "{{ nvidia_packages }}"
-    state: present
-  when: has_nvidia
-  tags: nvidia-install
-
-- name: Configure NVIDIA runtime for Docker
-  block:
-    - name: Configure Docker to use NVIDIA runtime
-      template:
-        src: docker-daemon.json.j2
-        dest: "{{ docker_config_file }}"
+    - name: Configure kernel modules
+      copy:
+        dest: /etc/modules-load.d/containerd.conf
+        content: |
+          overlay
+          br_netfilter
+          {{ kernel_modules | join('\n') }}
         owner: root
         group: root
         mode: 0644
-      notify: Restart docker
+      notify: load kernel modules
+      tags: kernel
 
-    - name: Configure containerd for NVIDIA
-      blockinfile:
-        path: /etc/containerd/config.toml
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA runtime"
-        block: |
-          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
-            runtime_type = "io.containerd.runc.v2"
-            privileged_without_host_devices = false
-            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
-              BinaryName = "/usr/bin/nvidia-container-runtime"
-              SystemdCgroup = true
-      notify: Restart containerd
-  when: has_nvidia
-  tags: nvidia-config
+    - name: Configure sysctl parameters
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+        reload: yes
+        state: present
+      loop: "{{ sysctl_params | dict2items }}"
+      notify: reload sysctl
+      tags: kernel
+  tags: system
 
-- name: Enable and start Docker service
-  systemd:
-    name: docker
-    enabled: yes
-    state: started
-  tags: service
+- name: Repository configuration
+  block:
+    - name: Configure Docker repository
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable
+        baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/centos/gpg
+        enabled: yes
+      tags: [repos, docker]
 
-- name: Add current user to docker group
-  user:
-    name: "{{ ansible_user }}"
-    groups: docker
-    append: yes
-  tags: user-config
+    - name: Configure Kubernetes repository
+      yum_repository:
+        name: kubernetes
+        description: Kubernetes
+        baseurl: https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/
+        gpgcheck: yes
+        gpgkey: https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/repodata/repomd.xml.key
+        enabled: yes
+      tags: [repos, kubernetes]
+
+    - name: Update package cache
+      package:
+        update_cache: yes
+      tags: repos
+  when: "'docker' in ansible_run_tags or 'kubernetes' in ansible_run_tags"
+  tags: repos
+
+- name: Docker setup
+  block:
+    - name: Install Docker packages
+      yum:
+        name: "{{ docker_packages }}"
+        state: present
+      tags: docker-install
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+      tags: service
+
+    - name: Add current user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+      tags: user-config
+  when: "'docker' in ansible_run_tags"
+  tags: docker
+
+- name: NVIDIA GPU setup
+  block:
+    - name: Verify NVIDIA GPU presence
+      command: lspci | grep -i nvidia
+      register: nvidia_hw
+      changed_when: false
+      tags: gpu
+
+    - name: Set NVIDIA GPU fact
+      set_fact:
+        has_nvidia: "{{ nvidia_hw.rc == 0 }}"
+      tags: gpu
+
+    - name: Install NVIDIA driver prerequisites
+      yum:
+        name:
+          - kernel-devel-{{ ansible_kernel }}
+          - kernel-headers-{{ ansible_kernel }}
+          - gcc
+          - make
+          - dkms
+        state: present
+      when: has_nvidia
+      tags: [nvidia-prereqs]
+
+    - name: Configure NVIDIA repository
+      block:
+        - name: Add NVIDIA repository
+          get_url:
+            url: "{{ nvidia_repo_url }}"
+            dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+            mode: '0644'
+
+        - name: Import NVIDIA GPG key
+          rpm_key:
+            key: https://nvidia.github.io/nvidia-container-runtime/gpgkey
+            state: present
+      when: has_nvidia
+      tags: nvidia-setup
+
+    - name: Install NVIDIA Container Toolkit
+      yum:
+        name: "{{ nvidia_packages }}"
+        state: present
+      when: has_nvidia
+      tags: nvidia-install
+
+    - name: Configure NVIDIA runtime
+      block:
+        - name: Configure Docker for NVIDIA
+          template:
+            src: docker-daemon.json.j2
+            dest: "{{ docker_config_file }}"
+            owner: root
+            group: root
+            mode: 0644
+          notify: Restart docker
+
+        - name: Configure containerd for NVIDIA
+          blockinfile:
+            path: /etc/containerd/config.toml
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA runtime"
+            block: |
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+                runtime_type = "io.containerd.runc.v2"
+                privileged_without_host_devices = false
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+                  BinaryName = "/usr/bin/nvidia-container-runtime"
+                  SystemdCgroup = true
+          notify: Restart containerd
+      when: has_nvidia
+      tags: nvidia-config
+  when: "'gpu' in group_names"
+  tags: nvidia
+
+- name: Validation
+  block:
+    - name: Validate Docker configuration
+      command: docker config validate {{ docker_config_file | default('/etc/docker/daemon.json') }}
+      register: docker_validate
+      changed_when: false
+      failed_when: docker_validate.rc != 0
+      tags: validation
+
+    - name: Test Docker daemon startup
+      command: dockerd --validate --config-file={{ docker_config_file | default('/etc/docker/daemon.json') }}
+      register: docker_dryrun
+      changed_when: false
+      when: not ansible_check_mode
+      tags: validation
+
+    - name: Validate containerd config
+      command: containerd config dump >/dev/null
+      when: not ansible_check_mode
+      tags: validation
+  tags: validation
 
 - name: Flush handlers
   meta: flush_handlers
+
+# ======================
+# Handlers Section
+# ======================
+  handlers:
+    - name: load kernel modules
+      command: modprobe -a {{ kernel_modules | default([]) | join(' ') }}
+      register: modprobe_result
+      failed_when: >
+        modprobe_result.rc != 0 and
+        "'Module not found' not in modprobe_result.stderr"
+      changed_when: modprobe_result.rc == 0
+      listen: "kernel modules changed"
+      tags: kernel
+
+    - name: reload sysctl
+      command: sysctl --system
+      register: sysctl_result
+      failed_when: sysctl_result.rc != 0
+      changed_when: "'applied' in sysctl_result.stdout"
+      listen: "sysctl changes"
+      tags: sysctl
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+      listen: "containerd configuration changed"
+      tags: containerd
+
+    - name: Restart docker
+      systemd:
+        name: docker
+        state: restarted
+        daemon_reload: yes
+      tags: docker

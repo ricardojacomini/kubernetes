@@ -1,18 +1,31 @@
 # roles/kubernetes/tasks/master.yml
 ---
-- name: Install kubectl
+- name: Install Kubernetes packages
   package:
     name:
       - kubectl-{{ k8s_version }}
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
     state: present
+
+- name: Configure kubelet
+  template:
+    src: kubelet.conf.j2
+    dest: /etc/sysconfig/kubelet
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart kubelet
 
 - name: Initialize Kubernetes cluster
   command: >
     kubeadm init
-    --pod-network-cidr=10.244.0.0/16
+    --pod-network-cidr={{ pod_network_cidr }}
+    --service-cidr={{ service_cidr }}
     --control-plane-endpoint="{{ inventory_hostname }}"
     --upload-certs
     --apiserver-cert-extra-sans="{{ ansible_host }}"
+    --ignore-preflight-errors=Swap
   register: kubeadm_init
   changed_when: "'Your Kubernetes control-plane has initialized' in kubeadm_init.stdout"
   args:
@@ -35,12 +48,11 @@
         group: "{{ ansible_user }}"
         mode: 0600
 
-# Replace static network config with dynamic selection
 - name: Install Pod network
   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
   when: kubeadm_init is changed
   register: network_install
-  changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"  
+  changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
 
 - name: Generate join command
   command: kubeadm token create --print-join-command
@@ -52,3 +64,12 @@
     content: "{{ join_command.stdout }}"
     dest: /tmp/join-command.sh
     mode: 0755
+
+- name: Validate cluster
+  command: kubectl get nodes
+  register: kubectl_nodes
+  changed_when: false
+  retries: 5
+  delay: 10
+  until: kubectl_nodes.rc == 0
+  when: kubeadm_init is changed

@@ -1,38 +1,173 @@
 # roles/nvidia/tasks/main.yml
 ---
-- name: Verify NVIDIA hardware
+- name: Verify NVIDIA hardware presence
   command: lspci | grep -i nvidia
   register: nvidia_hw
   changed_when: false
+  failed_when: false
   tags: [nvidia, verify]
 
-- name: Add NVIDIA repository
-  include_tasks: repos.yml
-  when: 
-    - nvidia_hw.stdout != ""
-    - not ansible_check_mode
+- name: Set GPU detection fact
+  set_fact:
+    has_nvidia_gpu: "{{ nvidia_hw.rc == 0 }}"
+  tags: [nvidia, verify]
+
+- name: Configure NVIDIA repositories
+  block:
+    - name: Ensure GPG key directory exists (Ubuntu)
+      file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: 0755
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Configure NVIDIA repository (Ubuntu)
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$(ARCH) /"
+        filename: nvidia-container-toolkit
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Configure NVIDIA repository (Rocky)
+      yum_repository:
+        name: nvidia-container-toolkit
+        description: NVIDIA Container Toolkit
+        baseurl: https://nvidia.github.io/libnvidia-container/stable/rhel{{ ansible_distribution_major_version }}/$basearch
+        gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey
+        gpgcheck: true
+        enabled: true
+      when: ansible_distribution == 'Rocky'
+  when: has_nvidia_gpu
   tags: [nvidia, repos]
 
 - name: Install NVIDIA components
-  include_tasks: install.yml  # Now includes both drivers and toolkit
-  when: nvidia_hw.stdout != ""
+  block:
+    - name: Install NVIDIA packages (Ubuntu)
+      apt:
+        name:
+          - nvidia-driver-{{ nvidia_driver_version }}
+          - nvidia-dkms-{{ nvidia_driver_version }}
+          - nvidia-utils-{{ nvidia_driver_version }}
+          - nvidia-container-toolkit
+          - nvidia-container-runtime
+          - kernel-devel-{{ ansible_kernel }}
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install NVIDIA packages (Rocky)
+      yum:
+        name:
+          - nvidia-driver-{{ nvidia_driver_version }}.*
+          - nvidia-container-toolkit
+          - nvidia-container-runtime
+          - kernel-devel-{{ ansible_kernel }}
+          - gcc
+          - make
+        enablerepo: nvidia-container-toolkit
+        state: present
+      when: ansible_distribution == 'Rocky'
+  when: has_nvidia_gpu
   tags: [nvidia, install]
 
 - name: Configure container runtime
-  include_tasks: runtime.yml
-  when: 
-    - nvidia_hw.stdout != ""
-    - nvidia_container_runtime_enabled | default(true) | bool
+  block:
+    - name: Verify NVIDIA toolkit installation
+      command: nvidia-container-toolkit --version
+      register: toolkit_check
+      changed_when: false
+      failed_when: toolkit_check.rc != 0
+
+    - name: Configure runtime (Docker)
+      block:
+        - name: Ensure Docker config directory exists
+          file:
+            path: /etc/docker
+            state: directory
+            mode: 0755
+
+        - name: Configure Docker for NVIDIA
+          template:
+            src: etc/docker/daemon-nvidia.json.j2
+            dest: "{{ docker_config_file | default('/etc/docker/daemon.json') }}"
+            owner: root
+            group: root
+            mode: 0644
+          notify: restart docker
+      when: 
+        - nvidia_runtime_options.Runtime == "docker"
+        - toolkit_check.rc == 0
+
+    - name: Configure runtime (containerd)
+      block:
+        - name: Ensure containerd config directory exists
+          file:
+            path: /etc/containerd
+            state: directory
+            mode: 0755
+
+        - name: Configure containerd for NVIDIA
+          blockinfile:
+            path: /etc/containerd/config.toml
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - NVIDIA RUNTIME"
+            block: |
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+                runtime_type = "io.containerd.runc.v2"
+                privileged_without_host_devices = false
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+                  BinaryName = "{{ nvidia_runtime_path }}"
+                  SystemdCgroup = {{ nvidia_runtime_options.SystemdCgroup | lower }}
+
+        - name: Set default runtime to NVIDIA
+          lineinfile:
+            path: /etc/containerd/config.toml
+            regexp: '^(\s*)default_runtime_name\s*='
+            line: '\1default_runtime_name = "{{ nvidia_runtime_name }}"'
+            insertafter: '\[plugins\."io\.containerd\.grpc\.v1\.cri"\.containerd\]'
+      when: 
+        - nvidia_runtime_options.Runtime == "containerd"
+        - toolkit_check.rc == 0
+        - nvidia_set_as_default | default(true) | bool
+  when: has_nvidia_gpu
   tags: [nvidia, runtime]
 
-- name: Enable MIG (if configured)
-  include_tasks: mig.yml
+- name: Configure MIG (if enabled)
+  block:
+    - name: Detect GPU model
+      command: nvidia-smi --query-gpu=gpu_name --format=csv,noheader
+      register: gpu_model
+      changed_when: false
+
+    - name: Enable MIG mode
+      command: nvidia-smi -mig 1
+      when: "'A100' in gpu_model.stdout or 'H100' in gpu_model.stdout"
+
+    - name: Configure MIG profiles
+      command: nvidia-smi mig -cgi "{{ item }}"
+      with_items: "{{ nvidia_mig.profiles | default(nvidia_gpu_types[gpu_model.stdout | lower].mig_profiles) }}"
+      when: "'A100' in gpu_model.stdout or 'H100' in gpu_model.stdout"
   when: 
-    - nvidia_hw.stdout != ""
+    - has_nvidia_gpu
     - nvidia_mig.enabled | default(false) | bool
   tags: [nvidia, mig]
 
 - name: Validate NVIDIA setup
-  include_tasks: validate.yml
-  when: nvidia_hw.stdout != ""
+  block:
+    - name: Verify Kubernetes GPU support
+      command: kubectl get nodes -o jsonpath='{.items[*].status.allocatable.nvidia\.com/gpu}'
+      register: k8s_gpu
+      changed_when: false
+
+    - name: Verify MIG configuration
+      command: nvidia-smi mig -lgi
+      when: nvidia_mig.enabled | default(false) | bool
+      register: mig_status
+      changed_when: false
+
+    - name: Show validation summary
+      debug:
+        msg: |
+          NVIDIA Components Installed: {{ toolkit_check is defined and toolkit_check.rc == 0 }}
+          Kubernetes GPU Allocation: {{ k8s_gpu.stdout }}
+          MIG Status: {{ mig_status.stdout if mig_status is defined else 'Disabled' }}
+  when: has_nvidia_gpu
   tags: [nvidia, validate]

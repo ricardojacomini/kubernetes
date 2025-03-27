@@ -124,3 +124,41 @@
 
 - name: Flush handlers
   meta: flush_handlers
+
+# ======================
+# Handlers Section
+# ======================
+  handlers:
+    - name: load kernel modules
+      command: modprobe -a {{ kernel_modules_extra | default([]) | join(' ') }} overlay br_netfilter
+      register: modprobe_result
+      failed_when: >
+        modprobe_result.rc != 0 and
+        "'Module not found' not in modprobe_result.stderr"
+      changed_when: modprobe_result.rc == 0
+      listen: "kernel modules changed"
+      tags: kernel
+
+    - name: reload sysctl
+      command: sysctl --system
+      register: sysctl_result
+      failed_when: sysctl_result.rc != 0
+      changed_when: "'applied' in sysctl_result.stdout"
+      listen: "sysctl changes"
+      tags: sysctl
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+      listen: "containerd configuration changed"
+      tags: containerd
+
+    - name: Restart docker
+      systemd:
+        name: docker
+        state: restarted
+        daemon_reload: yes
+      tags: docker

@@ -2,10 +2,8 @@
 ---
 # Rocky Linux specific variables
 docker_packages:
- # - docker-ce-{{ docker_version }}*
- # - docker-ce-cli-{{ docker_version }}*
-  - docker-ce
-  - docker-ce-cli
+  - docker-ce-{{ docker_version }}*
+  - docker-ce-cli-{{ docker_version }}*
   - containerd.io
   - docker-buildx-plugin  # Add if needed
 
