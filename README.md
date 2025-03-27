@@ -76,6 +76,7 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
     ├── 🐳 docker/            # Docker installation and config
     ├── ☸️ kubernetes/        # Kubernetes cluster deployment
     └── 🎮 nvidia/            # NVIDIA GPU configuration
+````
 
 ## Validation Workflow
 
