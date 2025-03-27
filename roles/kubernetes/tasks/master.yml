@@ -17,7 +17,7 @@
     mode: 0644
   notify: restart kubelet
 
-- name: Initialize Kubernetes cluster
+- name: "🛡️ Initialize Kubernetes Control Plane"
   command: >
     kubeadm init
     --pod-network-cidr={{ pod_network_cidr }}
@@ -31,19 +31,25 @@
   args:
     creates: /etc/kubernetes/admin.conf
 
-- name: Set up kubeconfig for user
+- name: "📋 Save Join Command"
+  copy:
+    content: "{{ kubeadm_init.stdout_lines[-1] }}"
+    dest: /root/join-command.sh
+    mode: 0755
+
+- name: "🏗️ Setup kubectl Config for user"
   block:
-    - name: Create .kube directory
+    - name: "📁 Create .kube directory"
       file:
         path: "~{{ ansible_user }}/.kube"
         state: directory
         mode: 0755
 
-    - name: Copy admin.conf
+    - name: "📄 Copy Admin Config"
       copy:
         remote_src: yes
         src: /etc/kubernetes/admin.conf
-        dest: "~{{ ansible_user }}/.kube/config"
+        dest: "{{ ansible_user_dir }}/.kube/config"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: 0600
@@ -59,11 +65,6 @@
   register: join_command
   changed_when: false
 
-- name: Save join command
-  copy:
-    content: "{{ join_command.stdout }}"
-    dest: /tmp/join-command.sh
-    mode: 0755
 
 - name: Validate cluster
   command: kubectl get nodes

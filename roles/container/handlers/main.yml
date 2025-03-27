@@ -1,0 +1,40 @@
+# roles/container/handlers
+#
+---
+# 🔄 Container Runtime Handlers
+
+- name: "🔄 Restart Docker"
+  service:
+    name: docker
+    state: restarted
+    enabled: yes
+  when: container_runtime == 'docker'
+
+- name: "🔄 Reload Containerd"
+  systemd:
+    name: containerd
+    state: reloaded
+  when: container_runtime == 'containerd'
+
+- name: "⚡ Apply NVIDIA Runtime Changes"
+  shell: |
+    systemctl restart docker && \
+    nvidia-ctk runtime configure --runtime=docker && \
+    systemctl restart docker
+  when: 
+    - has_nvidia
+    - container_runtime == 'docker'
+  tags: nvidia
+
+- name: "📜 Update Container Config"
+  command: containerd config default > /etc/containerd/config.toml
+  when: container_runtime == 'containerd'
+  notify: "🔄 Reload Containerd"
+
+- name: "🧹 Cleanup Temporary Files"
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  loop:
+    - nvidia_install.log
+    - docker_setup.tmp

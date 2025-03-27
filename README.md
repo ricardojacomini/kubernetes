@@ -55,28 +55,63 @@ ansible-playbook -i inventory.ini playbooks/site.yml
 ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
 ```
 
-# 📁 Kubernetes Cluster Deployment with Ansible
+# ☸️ Kubernetes Cluster Deployment with Ansible
 
 ##  🏗️ Project Structure
 
 ```text
-├── 📜 ansible.cfg            # Ansible configuration
-├── 📂 group_vars/            # Group-specific variables
-│   ├── 🎮 k8s-cluster.yml    # Cluster-wide Kubernetes configuration
-│   ├── 🏷️ main.yml           # Common variables across all hosts
-│   ├── 📊 monitoring.yml     # Monitoring stack configuration
-│   ├── 🪨 rocky.yml          # Rocky Linux specific settings
-│   └── 🐧 ubuntu.yml         # Ubuntu specific settings
-├── 📂 inventory/             # Inventory management
-│   └── 🏭 production.ini     # Production inventory file
-├── 📂 playbooks/             # Deployment playbooks
-│   └── ▶️ site.yml           # Main deployment playbook
-└── 📂 roles/                 # Ansible roles
-    ├── ⚙️ common/            # Base system configuration
-    ├── 🐳 docker/            # Docker installation and config
-    ├── ☸️ kubernetes/        # Kubernetes cluster deployment
-    └── 🎮 nvidia/            # NVIDIA GPU configuration
+├── 🔧 ansible.cfg                # Ansible configuration
+├── 📂 group_vars/                # Group-specific variables
+│   ├── 🎮 k8s-cluster.yml        # Cluster-wide Kubernetes configuration
+│   ├── 🏷️ main.yml               # Common variables across all hosts
+│   ├── 📊 monitoring.yml         # Monitoring stack configuration
+│   ├── 📦 rocky.yml              # Rocky Linux specific settings
+│   └── 📦 ubuntu.yml             # Ubuntu specific settings
+├── 📂 inventory/                 # Inventory management
+│   └── 🏭 inventory.ini          # Inventory file
+├── 📂 playbooks/                 # Deployment playbooks
+│   └── ▶️ site.yml               # Main deployment playbook
+└── 📂 roles/                     # Ansible roles
+    ├── ☸️ kubernetes/             # Kubernetes cluster deployment
+    ├── 📂 tasks/                  # Cluster deployment tasks
+    │   ├── ▶️ main.yml            # Main task sequence
+    │   ├── 👑 master.yml          # Control plane setup
+    │   └── 🛠️ worker.yml          # Worker node joining
+    ├── 📂 vars/                   # Version-pinned variables
+    │   └️ 🏷️ main.yml              # Kubernetes configuration
+    ├── 📂 templates/              # Configuration templates
+    │   ├── 📜 kubeadm-init.j2     # Init config template
+    │   └── 📜 calico.yaml.j2      # CNI template
+    ├── 📂 files/                  # Static files
+    │   ├── 📜 kube-flannel.yml    # Alternate CNI manifest
+    │   └── 📜 metrics-server.yaml # Monitoring components
+    │
+    └── 🐳 container/             # Main container role
+        ├── 📜 defaults/          # Default configurations
+        │   └── 🏷️ main.yml       # Default variables
+        ├── 📂 tasks/             # Task definitions
+        │   ├── ▶️ main.yml       # Main task sequence
+        │   ├── ⚙️ install.yml    # Docker installation
+        │   ├── 🎮 nvidia.yml     # NVIDIA-specific setup
+        │   └── 🔧 configure.yml  # Common configuration
+        ├── 📂 templates/         # Configuration templates
+        │   └── 🛠️ daemon.json.j2 # Docker config template
+        ├── 📂 handlers/          # Service handlers
+        │   └── 🔄 main.yml       # Restart handlers
 ````
+
+roles/
+└── 🐳 container/
+    ├── 📜 defaults/
+    │   └── 🏷️ main.yml       # Default variables
+    ├── tasks/
+    │   ├── main.yml       # Main task sequence
+    │   ├── install.yml    # Docker installation
+    │   ├── nvidia.yml     # NVIDIA-specific setup
+    │   └── configure.yml  # Common configuration
+    └── templates/
+        └── daemon.json.j2 # Docker config template
+
 
 ## Validation Workflow
 

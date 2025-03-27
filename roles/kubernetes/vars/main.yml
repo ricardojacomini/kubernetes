@@ -1,16 +1,39 @@
 # roles/kubernetes/vars/main.yml
 ---
 # Kubernetes Core Components
-k8s_version: "1.28.0"
-k8s_components:
-  - kubelet
-  - kubeadm
-  - kubectl
-  - cri-tools
+# 📌 Version-Pinned Components
+k8s:
+  version: "1.28.0"
+  components:
+    - kubelet
+    - kubeadm
+    - kubectl
+    - cri-tools
+  # Repository Configuration  
+  repo: 
+    ubuntu:
+      gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/Release.key"
+      repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/ /"
+    rocky:
+      gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/repodata/repomd.xml.key"
+      repo_url: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/"
+
+# Sys 
+  # OS-Specific Package Names
+  packages:
+    ubuntu:
+      kubelet: "kubelet={{ k8s_version }}-*"
+      kubeadm: "kubeadm={{ k8s_version }}-*"
+      kubectl: "kubectl={{ k8s_version }}-*"
+    rocky:
+      kubelet: "kubelet-{{ k8s_version }}-*"
+      kubeadm: "kubeadm-{{ k8s_version }}-*"
+      kubectl: "kubectl-{{ k8s_version }}-*"  
+
 
 # Networking Configuration
-pod_network_cidr: "10.244.0.0/16"
-service_cidr: "10.96.0.0/12"
+pod_network_cidr: "192.168.1.0/24"
+service_cidr: "192.168.2.0/24"
 dns_domain: "cluster.local"
 network_plugin: "flannel"  # Options: flannel, calico, cilium, weave
 
@@ -25,25 +48,6 @@ kubeadm_init_flags:
 container_runtime: "containerd"
 cri_socket: "/run/containerd/containerd.sock"
 
-# OS-Specific Package Names
-k8s_packages:
-  ubuntu:
-    kubelet: "kubelet={{ k8s_version }}-*"
-    kubeadm: "kubeadm={{ k8s_version }}-*"
-    kubectl: "kubectl={{ k8s_version }}-*"
-  rocky:
-    kubelet: "kubelet-{{ k8s_version }}-*"
-    kubeadm: "kubeadm-{{ k8s_version }}-*"
-    kubectl: "kubectl-{{ k8s_version }}-*"
-
-# Repository Configuration
-k8s_repos:
-  ubuntu:
-    gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/Release.key"
-    repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/deb/ /"
-  rocky:
-    gpg_key: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/repodata/repomd.xml.key"
-    repo_url: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0:2] | join('.') }}/rpm/"
 
 # System Configuration
 kubelet_flags:
@@ -61,6 +65,12 @@ cni_plugins:
     requirements:
       - "ipset"
       - "iptables"
+
+# 🌐 Network Configuration
+cni:
+  plugin: "calico"
+  cidr: "192.168.2.0/24"
+  version: "3.26.0"
 
 # Security
 enforce_node_restrictions: true

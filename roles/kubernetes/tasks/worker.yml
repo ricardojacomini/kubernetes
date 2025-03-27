@@ -38,10 +38,21 @@
     enabled: true
   when: ansible_distribution == 'Rocky'
 
-- name: Join worker to cluster
+- name: "🔍 Verify Network Range Availability (Worker)"
+  shell: |
+    ! ip route show | grep -q 192.168.1.0/24 &&
+    ! ip route show | grep -q 192.168.2.0/24
+  register: network_check
+  failed_when: network_check.rc != 0
+  changed_when: false
+  tags: validation
+
+- name: "🔗 Join Kubernetes Cluster"
   command: "{{ lookup('file', '/tmp/join-command.sh') }}"
   args:
     creates: /etc/kubernetes/kubelet.conf
+  environment:
+    KUBELET_EXTRA_ARGS: "--node-ip={{ ansible_default_ipv4.address }}"
   when: inventory_hostname in groups['workers']
 
 - name: Configure containerd for Kubernetes
@@ -49,3 +60,8 @@
     src: containerd.conf.j2
     dest: /etc/containerd/config.toml
   notify: restart containerd
+
+- name: "⏱️ Wait for Node Registration"
+  wait_for:
+    path: /etc/kubernetes/kubelet.conf
+    timeout: 120
