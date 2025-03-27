@@ -11,10 +11,7 @@
     - "../group_vars/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
   tasks:
     - name: Include system checks
-      include_tasks: "{{ lookup('first_found', possible_files) }}"
-      vars:
-        possible_files:
-          - ../roles/common/tasks/main.yml
+      include_tasks: "../roles/common/tasks/{{ ansible_distribution | lower }}.yml"
       tags: always,prerequisites
 
 - name: Configure base system
