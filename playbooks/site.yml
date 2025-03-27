@@ -7,22 +7,21 @@
   hosts: reservations
   gather_facts: true
   vars_files:
-    - ../group_vars/all.yml
-    - "../group_vars/os/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
+    - ../group_vars/main.yml
+    - "../group_vars/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
   tasks:
     - name: Include system checks
       include_tasks: "{{ lookup('first_found', possible_files) }}"
       vars:
         possible_files:
-          - ../roles/common/tasks/preflight.yml
           - ../roles/common/tasks/main.yml
       tags: always,prerequisites
 
 - name: Configure base system
   hosts: reservations
   vars_files:
-    - ../group_vars/all.yml
-    - ../group_vars/os/{{ ansible_distribution | lower }}.yml
+    - ../group_vars/main.yml
+    - ../group_vars/{{ ansible_distribution | lower }}.yml
   roles:
     - role: common
       tags: common
