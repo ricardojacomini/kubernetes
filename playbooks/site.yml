@@ -33,7 +33,7 @@
             import_role:
               name: kubernetes
               tasks_from: master.yml
-            tags: [kubernetes, master]
+        tags: [kubernetes, master]
 
       # 🧑‍🚀 Join Worker Nodes
       - name: "🧑‍🚀 Join Worker Nodes"
