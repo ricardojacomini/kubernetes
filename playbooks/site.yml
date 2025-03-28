@@ -18,7 +18,7 @@
       include_role:
         name: kubernetes
         tasks_from: preflight.yml
-      tags: [always, preflight, kubernetes]
+      tags: [kubernetes, preflight]
 
     - name: "📦 Include Container Pre-Flight Checks"
       include_role:
@@ -31,12 +31,10 @@
         has_nvidia: "{{ gpu_check.rc == 0 }}"
       tags: [gpu, nvidia]
 
-
       # The grep -q flag:
       #  - Returns 0 (true) if NVIDIA is found.
       #  - Returns 1 (false) if NVIDIA is not found.
       # alias check_nvidia='if lspci | grep -q NVIDIA; then echo "NVIDIA GPU found" else echo "No NVIDIA GPU found" fi'
-
 
 
     - name: Check GPU availability
