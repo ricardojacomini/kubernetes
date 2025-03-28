@@ -1,5 +1,7 @@
 # playbooks/site.yml
 ---
+
+
 # 🛠️ Pre-Flight Checks
 - name: "🛠️ Pre-Flight Checks"
   hosts: reservations
@@ -50,7 +52,7 @@
       include_role:
         name: nvidia
       when: gpu_hw_check.rc == 0
-      tags: [gpu, nvidia]
+      tags: [gpu, nvidia, container]
 
 # 👑 Initialize Control Plane
 - name: "👑 Initialize Control Plane"
