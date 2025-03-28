@@ -1,0 +1,20 @@
+# roles/kubernetes/tasks/verify.yml
+
+- name: Check kubelet status
+  ansible.builtin.service:
+    name: kubelet
+    state: started
+  tags: verify
+
+- name: Validate kubectl cluster-info
+  command: kubectl cluster-info
+  register: cluster_info
+  changed_when: false
+  failed_when: cluster_info.rc != 0
+  tags: verify
+
+- name: Print kubectl cluster-info result
+  debug:
+    var: cluster_info.stdout_lines
+  tags: verify
+
