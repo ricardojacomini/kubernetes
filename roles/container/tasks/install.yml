@@ -57,3 +57,8 @@
     name: "{{ ansible_user }}"
     groups: docker
     append: yes
+  tags: install
+
+# sudo usermod -aG docker $USER
+# newgrp docker
+

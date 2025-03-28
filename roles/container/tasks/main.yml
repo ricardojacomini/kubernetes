@@ -76,12 +76,3 @@
     tasks_from: nvidia.yml
   when: has_nvidia | default(false)
   tags: [gpu, nvidia]
-
-# sudo usermod -aG docker $USER
-# newgrp docker
-- name: Add user to Docker group
-  user:
-    name: "{{ ansible_user }}"
-    groups: docker
-    append: yes
-  tags: install
