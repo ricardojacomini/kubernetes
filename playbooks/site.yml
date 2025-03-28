@@ -26,6 +26,21 @@
         tasks_from: main.yml
       tags: [always, preflight]
 
+    - name: Check GPU availability
+      shell: lspci | grep -q NVIDIA
+      register: gpu_check
+      changed_when: false
+      failed_when: false  # Prevent failure if no NVIDIA GPU is found
+
+      # The grep -q flag:
+      #  - Returns 0 (true) if NVIDIA is found.
+      #  - Returns 1 (false) if NVIDIA is not found.
+      # alias check_nvidia='if lspci | grep -q NVIDIA; then echo "NVIDIA GPU found" else echo "No NVIDIA GPU found" fi'
+
+    - name: Set GPU availability fact
+      set_fact:
+        has_nvidia: "{{ gpu_check.rc == 0 }}"
+
 # 🐳 Configure Container Runtime
 - name: "🐳 Configure Container Runtime"
   hosts: reservations
