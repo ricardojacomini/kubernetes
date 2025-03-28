@@ -1,11 +1,15 @@
 # roles/kubernetes/tasks/master.yml
 ---
+- name: Set local Kubernetes version
+  set_fact:
+    k8s_version: "{{ versions.kubernetes }}"
+
 - name: Install Kubernetes packages
   package:
     name:
-      - kubectl-{{ versions.kubernetes }}
-      - kubelet-{{ versions.kubernetes }}
-      - kubeadm-{{ versions.kubernetes }}
+      - kubectl-{{ k8s_version }}
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
     state: present
 
 - name: Configure kubelet
