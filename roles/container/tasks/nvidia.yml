@@ -1,24 +1,41 @@
 # roles/container/tasks/nvidia.yml
 #
 ---
+
+# NVIDIA repository setup and toolkit installation
 - name: Configure NVIDIA repository
-  ansible.builtin.get_url:
-    url: "{{ nvidia_repo_url }}"
-    dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-  tags: [gpu, nvidia]
-
-- name: Import NVIDIA GPG key
   shell: |
-    rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
-    dnf clean all
-    dnf makecache
-  tags: [gpu, nvidia]
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
+    sudo rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
+    dnf clean all && dnf makecache
+  when: has_nvidia
 
-- name: Install NVIDIA Container Toolkit
-  package:
-    name: nvidia-container-toolkit
-    state: present
-    enablerepo: nvidia-container-toolkit
+- name: Verify NVIDIA Container Toolkit availability
+  shell: dnf list nvidia-container-toolkit
+  register: nvidia_check
+  failed_when: nvidia_check.rc != 0
+
+- name: Install NVIDIA Container Toolkit and configure Docker
+  block:
+    - name: Remove conflicting NVIDIA packages
+      dnf:
+        name: cm-nvidia-container-toolkit
+        state: absent
+      ignore_errors: yes  # Ignore if not installed or other errors
+
+    - name: Install NVIDIA Container Toolkit packages
+      dnf:
+        name: nvidia-container-toolkit
+        state: present
+        # Force the installation by overriding potential conflicts
+        # This ensures the toolkit is installed and any conflicts are resolved
+        # during the installation process.
+        enablerepo: nvidia-container-toolkit
+        install_weak_deps: false
+
+    - name: Configure Docker for NVIDIA
+      shell: |
+        nvidia-ctk runtime configure --runtime=docker
   tags: [gpu, nvidia]
 
 - name: Configure NVIDIA runtime

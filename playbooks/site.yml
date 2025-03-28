@@ -1,7 +1,6 @@
 # playbooks/site.yml
 ---
 
-
 # 🛠️ Pre-Flight Checks
 - name: "🛠️ Pre-Flight Checks"
   hosts: reservations
@@ -12,98 +11,48 @@
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
   vars:
     container_runtime: docker
-    has_nvidia: false
   tasks:
-    - name: "🔍 Include Kubernetes Pre-Flight Checks"
-      include_role:
-        name: kubernetes
-        tasks_from: preflight.yml
-      tags: [kubernetes, preflight]
+      - name: "📦 Include Container Pre-Flight Checks"
+        include_role:
+          name: container
+          tasks_from: main.yml
+        tags: [always, preflight]
 
-    - name: "📦 Include Container Pre-Flight Checks"
-      include_role:
-        name: container
-        tasks_from: main.yml
-      tags: [always, preflight]
+      - name: "🔍 Include Kubernetes Pre-Flight Checks"
+        include_role:
+          name: kubernetes
+          tasks_from: preflight.yml
+        tags: [kubernetes, preflight]
 
-    - name: Set GPU availability fact
-      set_fact:
-        has_nvidia: "{{ gpu_check.rc == 0 }}"
-      tags: [gpu, nvidia]
+      # 👑 Initialize Control Plane
+      - name: "👑 Initialize Control Plane"
+        hosts: master
+        become: true
+        tasks:
+          - name: "Include Kubernetes Master Setup"
+            import_role:
+              name: kubernetes
+              tasks_from: master.yml
+            tags: [kubernetes, master]
 
-      # The grep -q flag:
-      #  - Returns 0 (true) if NVIDIA is found.
-      #  - Returns 1 (false) if NVIDIA is not found.
-      # alias check_nvidia='if lspci | grep -q NVIDIA; then echo "NVIDIA GPU found" else echo "No NVIDIA GPU found" fi'
+      # 🧑‍🚀 Join Worker Nodes
+      - name: "🧑‍🚀 Join Worker Nodes"
+        hosts: workers
+        become: true
+        tasks:
+          - name: "Include Kubernetes Worker Setup"
+            import_role:
+              name: kubernetes
+              tasks_from: worker.yml
+            tags: [kubernetes, worker]
 
-
-    - name: Check GPU availability
-      shell: lspci | grep -q NVIDIA
-      register: gpu_check
-      changed_when: false
-      failed_when: false  # Prevent failure if no NVIDIA GPU is found
-      tags: [gpu, nvidia]
-      when: has_nvidia
-
-
-
-# 🐳 Configure Container Runtime
-- name: "🐳 Configure Container Runtime"
-  hosts: reservations
-  roles:
-    - role: container
-      tags: [container, docker]
-
-# 🎮 Configure GPU Nodes (if applicable)
-- name: "🎮 NVIDIA GPU Configuration"
-  hosts: gpu
-  vars:
-    nvidia_force_reinstall: false
-
-  pre_tasks:
-    - name: "🔍 Verify GPU Hardware Presence"
-      command: lspci | grep -i nvidia
-      register: gpu_hw_check
-      changed_when: false
-      failed_when: gpu_hw_check.rc != 0
-      tags: [gpu, validation]
-
-  tasks:
-    - name: "🚀 Run NVIDIA Role if GPU is detected"
-      include_role:
-        name: nvidia
-      when: gpu_hw_check.rc == 0
-      tags: [gpu, nvidia, container]
-
-# 👑 Initialize Control Plane
-- name: "👑 Initialize Control Plane"
-  hosts: master
-  become: true
-  tasks:
-    - name: "Include Kubernetes Master Setup"
-      import_role:
-        name: kubernetes
-        tasks_from: master.yml
-      tags: [kubernetes, master]
-
-# 🧑‍🚀 Join Worker Nodes
-- name: "🧑‍🚀 Join Worker Nodes"
-  hosts: workers
-  become: true
-  tasks:
-    - name: "Include Kubernetes Worker Setup"
-      import_role:
-        name: kubernetes
-        tasks_from: worker.yml
-      tags: [kubernetes, worker]
-
-# ✅ Validate Deployment
-- name: "✅ Validate Deployment"
-  hosts: reservations
-  become: true
-  tasks:
-    - name: "Include Kubernetes Validation Tasks"
-      import_role:
-        name: kubernetes
-        tasks_from: verify.yml
-      tags: [kubernetes, verify]
+      # ✅ Validate Deployment
+      - name: "✅ Validate Deployment"
+        hosts: reservations
+        become: true
+        tasks:
+          - name: "Include Kubernetes Validation Tasks"
+            import_role:
+              name: kubernetes
+              tasks_from: verify.yml
+            tags: [kubernetes, verify]

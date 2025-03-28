@@ -42,14 +42,22 @@
       }}
   tags: install
 
-- name: Check for NVIDIA GPU
+- name: "📦 Install Docker and Container Runtime"
+  include_tasks: install.yml
+  tags: install
+
+- name: "🔧 Apply Runtime Configuration"
+  include_tasks: configure.yml
+  tags: configure
+
+- name: "🐳 Configure Container Runtime (with GPU detection)"
   shell: lspci | grep -q NVIDIA
   register: gpu_check
   changed_when: false
   failed_when: false
   tags: [gpu, nvidia]
 
-- name: Set GPU fact
+- name: Set GPU availability fact
   set_fact:
     has_nvidia: "{{ gpu_check.rc == 0 }}"
   tags: [gpu, nvidia]
@@ -61,15 +69,10 @@
   when: has_nvidia | default(false)
   tags: [gpu, nvidia]
 
-- name: "📦 Install Docker and Container Runtime"
-  include_tasks: install.yml
-  tags: install
-
-- name: "⚙️ Configure NVIDIA GPU Support"
-  include_tasks: nvidia.yml
-  when: has_nvidia
-  tags: [gpu, nvidia]
-
-- name: "🔧 Apply Runtime Configuration"
-  include_tasks: configure.yml
-  tags: configure
+# sudo usermod -aG docker $USER
+# newgrp docker
+- name: Add user to Docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
