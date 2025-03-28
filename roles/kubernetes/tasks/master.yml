@@ -3,9 +3,9 @@
 - name: Install Kubernetes packages
   package:
     name:
-      - kubectl-{{ k8s_version }}
-      - kubelet-{{ k8s_version }}
-      - kubeadm-{{ k8s_version }}
+      - kubectl-{{ versions.kubernetes }}
+      - kubelet-{{ versions.kubernetes }}
+      - kubeadm-{{ versions.kubernetes }}
     state: present
 
 - name: Configure kubelet
