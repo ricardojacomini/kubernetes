@@ -12,10 +12,11 @@
   when: ansible_distribution == "Rocky"
 
 - name: Add Docker repository for Rocky
-  shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
   when: ansible_distribution == "Rocky"
+  become: true
 
 - name: Import Docker GPG key (optional but recommended)
   rpm_key:
@@ -41,6 +42,7 @@
   check_mode: no
   register: docker_pkg_result
   changed_when: docker_pkg_result is changed
+  become: true
 
 - name: Show Docker install result
   debug:
