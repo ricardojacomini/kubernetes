@@ -64,7 +64,6 @@
   include_tasks: nvidia.yml
   when: has_nvidia
   tags: [gpu, nvidia]
-  when: has_nvidia
 
 - name: "🔧 Apply Runtime Configuration"
   include_tasks: configure.yml
