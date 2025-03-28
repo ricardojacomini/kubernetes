@@ -1,12 +1,17 @@
 # playbooks/site.yml
 ---
-- name: "🛠️ Pre-Flight Configuration"
+
+# 🛠️ Pre-Flight Checks
+- name: "🛠️ Pre-Flight Checks"
   hosts: reservations
-  become: true  # 👈 Global privilege escalation for all roles and tasks
+  become: true
   gather_facts: true
   vars_files:
     - ../group_vars/main.yml
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  vars:
+    container_runtime: docker
+    has_nvidia: false
   tasks:
     - name: "🔍 Include Kubernetes Pre-Flight Checks"
       include_role:
@@ -17,57 +22,54 @@
     - name: "📦 Include Container Pre-Flight Checks"
       include_role:
         name: container
-        tasks_from: main.yml  # Changed from non-existent preflight.yml
+        tasks_from: main.yml
       tags: [always, preflight]
 
+# 🐳 Configure Container Runtime
 - name: "🐳 Configure Container Runtime"
   hosts: reservations
+  become: true
   roles:
     - role: container
       tags: [container, docker]
-  vars:
-    container_runtime: "docker"
 
+# 🎮 Configure GPU Nodes (if applicable)
 - name: "🎮 Configure GPU Nodes"
-  hosts: gpu
+  hosts: gpu_nodes
+  become: true
   roles:
-    - role: container
-      tags: [container, nvidia]
-  vars:
-    has_nvidia: true
+    - role: nvidia
+      tags: [gpu, nvidia]
 
-- name: "☸️ Deploy Kubernetes Cluster"
-  hosts: reservations
-  roles:
-    - role: kubernetes
-      tags: kubernetes
-  vars_files:
-    - ../group_vars/k8s-cluster.yml
-
+# 👑 Initialize Control Plane
 - name: "👑 Initialize Control Plane"
   hosts: master
+  become: true
   tasks:
-    - include_tasks: ../roles/kubernetes/tasks/master.yml
+    - name: "Include Kubernetes Master Setup"
+      import_role:
+        name: kubernetes
+        tasks_from: master.yml
       tags: [kubernetes, master]
 
-- name: "🛠️ Join Worker Nodes"
+# 🧑‍🚀 Join Worker Nodes
+- name: "🧑‍🚀 Join Worker Nodes"
   hosts: workers
+  become: true
   tasks:
-    - include_tasks: ../roles/kubernetes/tasks/worker.yml
-      tags: [kubernetes, workers]
+    - name: "Include Kubernetes Worker Setup"
+      import_role:
+        name: kubernetes
+        tasks_from: worker.yml
+      tags: [kubernetes, worker]
 
+# ✅ Validate Deployment
 - name: "✅ Validate Deployment"
   hosts: reservations
+  become: true
   tasks:
-    - include_tasks: ../roles/kubernetes/tasks/verify.yml
+    - name: "Include Kubernetes Validation Tasks"
+      import_role:
+        name: kubernetes
+        tasks_from: verify.yml
       tags: [kubernetes, verify]
-
-- name: "📊 Verify GPU Resources"
-  hosts: gpu
-  tasks:
-    - name: Check GPU allocation
-      command: kubectl describe node {{ inventory_hostname }} | grep nvidia.com/gpu
-      register: gpu_check
-      failed_when: "'nvidia.com/gpu' not in gpu_check.stdout"
-      changed_when: false
-      tags: [nvidia, verify]
