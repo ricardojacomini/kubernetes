@@ -1,6 +1,5 @@
 # playbooks/site.yml
 ---
-
 # 🛠️ Pre-Flight Checks
 - name: "🛠️ Pre-Flight Checks"
   hosts: reservations
