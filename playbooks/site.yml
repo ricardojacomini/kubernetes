@@ -27,17 +27,29 @@
 # 🐳 Configure Container Runtime
 - name: "🐳 Configure Container Runtime"
   hosts: reservations
-  become: true
   roles:
     - role: container
       tags: [container, docker]
 
 # 🎮 Configure GPU Nodes (if applicable)
-- name: "🎮 Configure GPU Nodes"
-  hosts: gpu_nodes
-  become: true
-  roles:
-    - role: nvidia
+- name: "🎮 NVIDIA GPU Configuration"
+  hosts: gpu
+  vars:
+    nvidia_force_reinstall: false
+
+  pre_tasks:
+    - name: "🔍 Verify GPU Hardware Presence"
+      command: lspci | grep -i nvidia
+      register: gpu_hw_check
+      changed_when: false
+      failed_when: gpu_hw_check.rc != 0
+      tags: [gpu, validation]
+
+  tasks:
+    - name: "🚀 Run NVIDIA Role if GPU is detected"
+      include_role:
+        name: nvidia
+      when: gpu_hw_check.rc == 0
       tags: [gpu, nvidia]
 
 # 👑 Initialize Control Plane
