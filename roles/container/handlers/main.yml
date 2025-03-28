@@ -1,40 +1,42 @@
 # roles/container/handlers
-#
 ---
 # 🔄 Container Runtime Handlers
 
-- name: "🔄 Restart Container Runtime"
-  block:
-    - name: Restart Docker
-      service:
-        name: docker
-        state: restarted
-      when: container_runtime == 'docker'
-    
-    - name: Reload Containerd
-      systemd:
-        name: containerd
-        state: reloaded
-      when: container_runtime == 'containerd'
-  tags: always
+# 🐳 Restart Docker
+- name: restart docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  when: container_runtime == 'docker'
 
-- name: "⚡ Apply NVIDIA Runtime Changes"
-  shell: |
-    systemctl restart docker && \
-    nvidia-ctk runtime configure --runtime=docker && \
+# 🧊 Restart Containerd
+- name: restart containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+  when: container_runtime == 'containerd'
+
+# ⚡ Apply NVIDIA Runtime Configuration (Docker only)
+- name: apply nvidia runtime
+  ansible.builtin.shell: |
     systemctl restart docker
-  when: 
+    nvidia-ctk runtime configure --runtime=docker
+    systemctl restart docker
+  when:
     - has_nvidia
     - container_runtime == 'docker'
   tags: nvidia
 
-- name: "📜 Update Container Config"
-  command: containerd config default > /etc/containerd/config.toml
+# 🧰 Reload Containerd Config (from toml)
+- name: reload containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: reloaded
   when: container_runtime == 'containerd'
-  notify: "🔄 Reload Containerd"
 
-- name: "🧹 Cleanup Temporary Files"
-  file:
+# 🧹 Cleanup Temporary Files
+- name: cleanup temp files
+  ansible.builtin.file:
     path: "/tmp/{{ item }}"
     state: absent
   loop:
