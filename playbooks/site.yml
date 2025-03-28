@@ -1,67 +1,67 @@
 # playbooks/site.yml
-# Define the master playbook that orchestrates the deployment of the Kubernetes cluster.
-
-# playbooks/site.yml
 ---
-- name: Validate cluster prerequisites
+- name: "🛠️ Pre-Flight Configuration"
   hosts: reservations
   gather_facts: true
   vars_files:
     - ../group_vars/main.yml
-    - "../group_vars/{{ 'ubuntu.yml' if ansible_distribution == 'Ubuntu' else 'rocky.yml' }}"
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
   tasks:
-    - name: Include system checks
-      include_tasks: "../roles/common/tasks/{{ ansible_distribution | lower }}.yml"
-      tags: always,prerequisites
+    - name: "🔍 Include Kubernetes Pre-Flight Checks"
+      include_role:
+        name: kubernetes
+        tasks_from: preflight.yml
+      tags: [always, preflight]
 
-- name: Configure base system
+    - name: "📦 Include Container Pre-Flight Checks"
+      include_role:
+        name: container
+        tasks_from: main.yml  # Changed from non-existent preflight.yml
+      tags: [always, preflight]
+
+- name: "🐳 Configure Container Runtime"
   hosts: reservations
-  vars_files:
-    - ../group_vars/main.yml
-    - ../group_vars/{{ ansible_distribution | lower }}.yml
   roles:
-    - role: common
-      tags: common
+    - role: container
+      tags: [container, docker]
+  vars:
+    container_runtime: "docker"
 
-- name: Setup container runtime
-  hosts: reservations
-  roles:
-    - role: docker
-      tags: docker
-
-- name: Configure GPU nodes
+- name: "🎮 Configure GPU Nodes"
   hosts: gpu
   roles:
-    - role: nvidia
-      tags: nvidia
+    - role: container
+      tags: [container, nvidia]
+  vars:
+    has_nvidia: true
 
-- name: Deploy Kubernetes cluster
+- name: "☸️ Deploy Kubernetes Cluster"
   hosts: reservations
-  vars_files:
-    - ../group_vars/k8s-cluster.yml
   roles:
     - role: kubernetes
       tags: kubernetes
+  vars_files:
+    - ../group_vars/k8s-cluster.yml
 
-- name: Initialize control plane
+- name: "👑 Initialize Control Plane"
   hosts: master
   tasks:
     - include_tasks: ../roles/kubernetes/tasks/master.yml
-      tags: master
+      tags: [kubernetes, master]
 
-- name: Join worker nodes
+- name: "🛠️ Join Worker Nodes"
   hosts: workers
   tasks:
     - include_tasks: ../roles/kubernetes/tasks/worker.yml
-      tags: workers
+      tags: [kubernetes, workers]
 
-- name: Validate deployment
+- name: "✅ Validate Deployment"
   hosts: reservations
   tasks:
     - include_tasks: ../roles/kubernetes/tasks/verify.yml
-      tags: verify
+      tags: [kubernetes, verify]
 
-- name: Verify GPU resources
+- name: "📊 Verify GPU Resources"
   hosts: gpu
   tasks:
     - name: Check GPU allocation
@@ -69,3 +69,4 @@
       register: gpu_check
       failed_when: "'nvidia.com/gpu' not in gpu_check.stdout"
       changed_when: false
+      tags: [nvidia, verify]

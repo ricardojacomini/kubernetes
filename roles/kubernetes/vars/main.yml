@@ -93,8 +93,8 @@ kubelet_extra_args:
   - "--pod-cidr={{pod_network_cidr}}"
   - "--feature-gates=DevicePlugins=true"
   - "--allowed-unsafe-sysctls=net.core.somaxconn"
-  - "--allowed-unsafe-sysctls=net.core.somaxconn"
-
+  - "--protect-kernel-defaults=true"
+  - "--read-only-port=0"
 # Enhanced network plugin configuration
 network_plugins:
   flannel:
