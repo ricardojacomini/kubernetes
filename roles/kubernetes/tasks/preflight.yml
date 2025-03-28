@@ -29,15 +29,10 @@
     # System packages
     - name: "📦 Install common packages"
       package:
-        name: "{{ item }}"
+        name: "{{ 
+          ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset'] + 
+          (['nfs-utils'] if ansible_distribution == 'Rocky' else ['nfs-common']) }"
         state: present
-      loop:
-        - conntrack
-        - socat
-        - ebtables
-        - ethtool
-        - ipset
-        - nfs-common
       tags: always
 
     # Kernel parameters (using command module)
