@@ -54,6 +54,13 @@
     has_nvidia: "{{ gpu_check.rc == 0 }}"
   tags: [gpu, nvidia]
 
+- name: Include NVIDIA role if GPU is present
+  include_role:
+    name: nvidia
+    tasks_from: nvidia.yml
+  when: has_nvidia | default(false)
+  tags: [gpu, nvidia]
+
 - name: "📦 Install Docker and Container Runtime"
   include_tasks: install.yml
   tags: install
