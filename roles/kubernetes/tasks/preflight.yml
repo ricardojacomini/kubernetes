@@ -3,7 +3,7 @@
 - name: "🛡️ Base System Configuration"
   block:
     - name: "📦 Install common packages"
-      package:
+      ansible.builtin.package:  # Explicit module name
         name: "{{ item }}"
         state: present
       loop:
@@ -16,10 +16,10 @@
       tags: always
 
     - name: "🔧 Load required kernel modules"
-      modprobe:
+      ansible.builtin.modprobe:  # FQCN for modprobe
         name: "{{ item }}"
         state: present
-        persistent: yes  # Ensures modules load on reboot
+        persistent: yes
       loop:
         - overlay
         - br_netfilter
@@ -27,12 +27,12 @@
       tags: always
 
     - name: "📝 Configure kernel sysctl parameters"
-      sysctl:
+      ansible.builtin.sysctl:  # Explicit module name
         name: "{{ item.key }}"
         value: "{{ item.value }}"
         state: present
         reload: yes
-        sysctl_set: yes  # Ensures /etc/sysctl.conf is updated
+        sysctl_set: yes
       loop:
         - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
         - { key: "net.ipv4.ip_forward", value: "1" }
