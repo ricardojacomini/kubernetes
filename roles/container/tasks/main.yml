@@ -14,13 +14,24 @@
       {% endif %}
 
 - name: "📦 Ensure basic dependencies"
-  package:
-    name: "{{ ansible_distribution | lower | replace(' ', '_') | regex_replace('^rocky$', 'centos') }}"
-    state: present
-  vars:
-    ansible_distribution | lower | replace(' ', '_') | regex_replace('^rocky$', 'centos'):
-      Ubuntu: ["apt-transport-https", "ca-certificates", "curl", "software-properties-common"]
-      Rocky: ["yum-utils", "device-mapper-persistent-data", "lvm2"]
+  block:
+    - name: Set OS package list
+      set_fact:
+        os_packages: >-
+          {% if ansible_distribution == 'Ubuntu' %}
+          ["apt-transport-https", "ca-certificates", "curl", "software-properties-common"]
+          {% elif ansible_distribution == 'Rocky' %}
+          ["yum-utils", "device-mapper-persistent-data", "lvm2"]
+          {% endif %}
+
+    - name: Install OS-specific packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ os_packages }}"
+  when: 
+    - ansible_distribution in ['Ubuntu', 'Rocky']
+  tags: packages
 
 - name: Check for NVIDIA GPU
   shell: lspci | grep -q NVIDIA
