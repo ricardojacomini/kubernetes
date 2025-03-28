@@ -26,14 +26,20 @@
         - nf_conntrack
       tags: always
 
-    # System packages
+    - name: "📦 Define common packages"
+      set_fact:
+        common_packages: "{{ 
+          ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 
+          'nfs-utils'] if ansible_distribution == 'Rocky' 
+          else ['conntrack', 'socat', 'ebtables', 'ethtool', 
+          'ipset', 'nfs-common'] }}"
+
     - name: "📦 Install common packages"
       package:
-        name: "{{ 
-          ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset'] + 
-          (['nfs-utils'] if ansible_distribution == 'Rocky' else ['nfs-common']) }"
+        name: "{{ common_packages }}"
         state: present
       tags: always
+
 
     # Kernel parameters (using command module)
     - name: "📝 Configure kernel sysctl parameters"
