@@ -71,6 +71,8 @@
   tags: [gpu, nvidia]
 
 - name: Include NVIDIA role if GPU is present
-  tasks_from: nvidia.yml
+  include_role:
+    name: container
+    tasks_from: nvidia.yml
   when: has_nvidia | default(false)
   tags: [gpu, nvidia]
