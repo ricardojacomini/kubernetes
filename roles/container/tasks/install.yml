@@ -8,15 +8,13 @@
 
 - name: Install Docker packages
   package:
-    name: "{{ docker_packages }}"
+    name: >-
+      {{
+        ['docker-ce', 'docker-ce-cli', 'containerd.io']
+        if ansible_distribution == 'Rocky'
+        else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin']
+      }}
     state: present
-  vars:
-    docker_packages: >-
-      {% if ansible_distribution == 'Rocky' %}
-      ["docker-ce", "docker-ce-cli", "containerd.io"]
-      {% else %}
-      ["docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin"]
-      {% endif %}
 
 - name: Start and enable Docker
   service:
