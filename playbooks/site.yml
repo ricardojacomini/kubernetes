@@ -18,6 +18,10 @@
           tasks_from: main.yml
         tags: [always, preflight]
 
+      - name: Print all version pins
+        debug:
+          var: versions
+
       - name: "🔍 Include Kubernetes Pre-Flight Checks"
         include_role:
           name: kubernetes
@@ -29,6 +33,9 @@
   hosts: master
   become: true
   gather_facts: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
   tasks:
     - name: "Include Kubernetes Master Setup"
       import_role:

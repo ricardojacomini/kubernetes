@@ -4,6 +4,10 @@
   set_fact:
     k8s_version: "{{ versions.kubernetes }}"
 
+- name: Print Kubernetes version
+  debug:
+    msg: "Using Kubernetes version: {{ k8s_version }}"
+
 - name: Install Kubernetes packages
   package:
     name:
