@@ -16,7 +16,7 @@
       tags: always
 
     - name: "🔧 Load required kernel modules"
-      ansible.builtin.modprobe:  # FQCN for modprobe
+      ansible.posix.modprobe:  # FQCN for modprobe
         name: "{{ item }}"
         state: present
         persistent: yes
