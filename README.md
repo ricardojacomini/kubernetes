@@ -48,6 +48,9 @@ cd gpu-kubernetes-ansible
 python3 -m pip install -r requirements.txt
 ansible-galaxy install -r requirements.yml
 
+# To list all available tags in your playbook 
+ansible-playbook -i inventory.ini playbooks/site.yml --list-tags
+
 # Deploy (see full options below)
 ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations  --check 
 
