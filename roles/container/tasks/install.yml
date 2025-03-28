@@ -16,7 +16,6 @@
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
   when: ansible_distribution == "Rocky"
-  become: true
 
 - name: Import Docker GPG key (optional but recommended)
   rpm_key:
@@ -42,7 +41,6 @@
   check_mode: no
   register: docker_pkg_result
   changed_when: docker_pkg_result is changed
-  become: true
 
 - name: Show Docker install result
   debug:

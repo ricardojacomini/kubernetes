@@ -2,6 +2,7 @@
 ---
 - name: "🛠️ Pre-Flight Configuration"
   hosts: reservations
+  become: true  # 👈 Global privilege escalation for all roles and tasks
   gather_facts: true
   vars_files:
     - ../group_vars/main.yml
