@@ -15,12 +15,12 @@
     - br_netfilter
   become: true
 
-# Only needed if you plan to reboot the host later:
+# Only needed if you plan to reboot the host later
 - name: Persist kernel modules across reboots
-  ansible.builtin.copy:
+  copy:
     dest: /etc/modules-load.d/container.conf
     content: |
       overlay
       br_netfilter
-  mode: '0644'
+    mode: '0644'
   become: true
