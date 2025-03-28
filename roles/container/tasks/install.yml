@@ -51,21 +51,17 @@
     name: docker
     enabled: yes
     state: started
-  tags: [container, install]
-
 
 - name: Ensure 'docker' group exists
   group:
     name: docker
     state: present
-  tags: [container, install]
 
 - name: Add user to Docker group
   user:
     name: "{{ ansible_user_id }}"
     groups: docker
     append: yes
-  tags: [container, install]
 
 # sudo usermod -aG docker $USER
 # newgrp docker
