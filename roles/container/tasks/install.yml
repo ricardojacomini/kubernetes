@@ -17,8 +17,21 @@
     creates: /etc/yum.repos.d/docker-ce.repo
   when: ansible_distribution == "Rocky"
 
+- name: Import Docker GPG key (optional but recommended)
+  rpm_key:
+    state: present
+    key: https://download.docker.com/linux/centos/gpg
+  when: ansible_distribution == "Rocky"
+
 - name: Clean DNF metadata
   shell: dnf clean all && dnf makecache
+  when: ansible_distribution == "Rocky"
+
+- name: Verify docker-ce is available before install
+  shell: dnf list docker-ce docker-ce-cli containerd.io
+  register: docker_check
+  failed_when: docker_check.rc != 0
+  changed_when: false
   when: ansible_distribution == "Rocky"
 
 - name: Install Docker packages
