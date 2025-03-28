@@ -1,9 +1,38 @@
 # roles/kubernetes/tasks/preflight.yml
 ---
-- name: "🛡️ Base System Configuration"
+- name: "🛡️ Base System Checks"
   block:
+    # Hardware requirements
+    - name: "💽 Verify minimum RAM (4GB)"
+      shell: |
+        awk '/MemTotal/ {print $2}' /proc/meminfo
+      register: mem_total
+      changed_when: false
+      failed_when: mem_total.stdout|int < 4000000
+      tags: always
+
+    - name: "🖥️ Verify CPU cores (2+)"
+      shell: |
+        nproc
+      register: cpu_cores
+      changed_when: false
+      failed_when: cpu_cores.stdout|int < 2
+      tags: always
+
+    # Kernel modules
+    - name: "🔧 Load required kernel modules"
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+        - nf_conntrack
+      tags: always
+
+    # System packages
     - name: "📦 Install common packages"
-      ansible.builtin.package:  # Explicit module name
+      package:
         name: "{{ item }}"
         state: present
       loop:
@@ -15,49 +44,48 @@
         - nfs-common
       tags: always
 
-    - name: "🔧 Load required kernel modules"
-      ansible.posix.modprobe:  # FQCN for modprobe
-        name: "{{ item }}"
-        state: present
-        persistent: yes
-      loop:
-        - overlay
-        - br_netfilter
-        - nf_conntrack
-      tags: always
-
+    # Kernel parameters
     - name: "📝 Configure kernel sysctl parameters"
-      ansible.builtin.sysctl:  # Explicit module name
+      sysctl:
         name: "{{ item.key }}"
         value: "{{ item.value }}"
         state: present
         reload: yes
-        sysctl_set: yes
       loop:
         - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
         - { key: "net.ipv4.ip_forward", value: "1" }
         - { key: "vm.swappiness", value: "0" }
       tags: always
 
+    # Network checks
+    - name: "🌐 Verify network connectivity"
+      wait_for_connection:
+        timeout: 30
+      tags: always
+
 - name: "⚙️ Hardware Validation"
   block:
+    # Swap configuration
     - name: "🔄 Verify swap is disabled"
-      shell: swapon --show | wc -l
+      shell: |
+        swapon --show | wc -l
       register: swap_status
       changed_when: false
       failed_when: swap_status.stdout != "0"
       tags: validation
 
+    # GPU-specific checks
     - name: "🎮 NVIDIA GPU Pre-checks"
       block:
-        - name: Detect NVIDIA GPUs
-          shell: lspci | grep -iq nvidia
+        - name: "🔍 Detect NVIDIA GPUs"
+          shell: |
+            lspci | grep -iq nvidia
           register: gpu_detected
           changed_when: false
           failed_when: false
           tags: gpu,validation
 
-        - name: Install GPU build dependencies
+        - name: "📦 Install GPU build dependencies"
           package:
             name: "{{ ['gcc', 'make', 'dkms'] + 
                       (['kernel-devel'] if ansible_distribution == 'Rocky' 
@@ -67,4 +95,22 @@
             - gpu_detected.rc == 0
             - "'gpu' in group_names"
           tags: gpu
-      when: "'gpu' in group_names"  # Only run on GPU nodes
+
+        - name: "🔌 Verify CUDA compatibility"
+          shell: |
+            lspci -v | grep -i nvidia | grep -iq 'vga compatible controller'
+          when: "'gpu' in group_names"
+          register: cuda_compatible
+          changed_when: false
+          failed_when: cuda_compatible.rc != 0
+          tags: gpu,validation
+      when: "'gpu' in group_names"
+
+    # Disk space check
+    - name: "💾 Verify root partition space (10GB minimum)"
+      shell: |
+        df --output=avail -BG / | tail -1 | tr -d 'G'
+      register: root_space
+      changed_when: false
+      failed_when: root_space.stdout|int < 10
+      tags: validation
