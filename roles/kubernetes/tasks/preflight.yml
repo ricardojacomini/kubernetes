@@ -1,0 +1,70 @@
+# roles/kubernetes/tasks/preflight.yml
+---
+- name: "🛡️ Base System Configuration"
+  block:
+    - name: "📦 Install common packages"
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - conntrack
+        - socat
+        - ebtables
+        - ethtool
+        - ipset
+        - nfs-common
+      tags: always
+
+    - name: "🔧 Load required kernel modules"
+      modprobe:
+        name: "{{ item }}"
+        state: present
+        persistent: yes  # Ensures modules load on reboot
+      loop:
+        - overlay
+        - br_netfilter
+        - nf_conntrack
+      tags: always
+
+    - name: "📝 Configure kernel sysctl parameters"
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+        sysctl_set: yes  # Ensures /etc/sysctl.conf is updated
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+        - { key: "vm.swappiness", value: "0" }
+      tags: always
+
+- name: "⚙️ Hardware Validation"
+  block:
+    - name: "🔄 Verify swap is disabled"
+      shell: swapon --show | wc -l
+      register: swap_status
+      changed_when: false
+      failed_when: swap_status.stdout != "0"
+      tags: validation
+
+    - name: "🎮 NVIDIA GPU Pre-checks"
+      block:
+        - name: Detect NVIDIA GPUs
+          shell: lspci | grep -iq nvidia
+          register: gpu_detected
+          changed_when: false
+          failed_when: false
+          tags: gpu,validation
+
+        - name: Install GPU build dependencies
+          package:
+            name: "{{ ['gcc', 'make', 'dkms'] + 
+                      (['kernel-devel'] if ansible_distribution == 'Rocky' 
+                       else ['linux-headers-generic']) }}"
+            state: present
+          when: 
+            - gpu_detected.rc == 0
+            - "'gpu' in group_names"
+          tags: gpu
+      when: "'gpu' in group_names"  # Only run on GPU nodes

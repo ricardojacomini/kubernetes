@@ -1,0 +1,4 @@
+nvidia_mig:
+  enabled: true
+  strategy: "mixed"
+  profiles: ["1g.5gb", "2g.10gb"]

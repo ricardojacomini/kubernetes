@@ -13,6 +13,15 @@
       https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
       {% endif %}
 
+- name: "📦 Ensure basic dependencies"
+  package:
+    name: "{{ ansible_distribution | lower | replace(' ', '_') | regex_replace('^rocky$', 'centos') }}"
+    state: present
+  vars:
+    ansible_distribution | lower | replace(' ', '_') | regex_replace('^rocky$', 'centos'):
+      Ubuntu: ["apt-transport-https", "ca-certificates", "curl", "software-properties-common"]
+      Rocky: ["yum-utils", "device-mapper-persistent-data", "lvm2"]
+
 - name: Check for NVIDIA GPU
   shell: lspci | grep -q NVIDIA
   register: gpu_check

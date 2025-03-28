@@ -3,18 +3,20 @@
 ---
 # 🔄 Container Runtime Handlers
 
-- name: "🔄 Restart Docker"
-  service:
-    name: docker
-    state: restarted
-    enabled: yes
-  when: container_runtime == 'docker'
-
-- name: "🔄 Reload Containerd"
-  systemd:
-    name: containerd
-    state: reloaded
-  when: container_runtime == 'containerd'
+- name: "🔄 Restart Container Runtime"
+  block:
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted
+      when: container_runtime == 'docker'
+    
+    - name: Reload Containerd
+      systemd:
+        name: containerd
+        state: reloaded
+      when: container_runtime == 'containerd'
+  tags: always
 
 - name: "⚡ Apply NVIDIA Runtime Changes"
   shell: |

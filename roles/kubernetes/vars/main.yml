@@ -89,7 +89,10 @@ system_reserved:
 
   # Add these new variables:
 kubelet_extra_args:
+  - "--node-ip=$(hostname -I | awk '{print $1}')"
+  - "--pod-cidr={{pod_network_cidr}}"
   - "--feature-gates=DevicePlugins=true"
+  - "--allowed-unsafe-sysctls=net.core.somaxconn"
   - "--allowed-unsafe-sysctls=net.core.somaxconn"
 
 # Enhanced network plugin configuration
