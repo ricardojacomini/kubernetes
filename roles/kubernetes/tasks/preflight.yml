@@ -1,5 +1,14 @@
 # roles/kubernetes/tasks/preflight.yml
 ---
+- name: "📦 Define common packages"
+  set_fact:
+    common_packages: >-
+      {{
+        ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-utils']
+        if ansible_distribution == 'Rocky'
+        else ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-common']
+      }}
+
 - name: "🛡️ Base System Checks"
   block:
     # Hardware requirements
@@ -26,18 +35,13 @@
         - nf_conntrack
       tags: always
 
-    - name: "📦 Define common packages"
-      set_fact:
-        common_packages: >-
-          {{
-            ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-utils']
-            if ansible_distribution == 'Rocky'
-            else ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-common']
-          }}
-
     - name: "📦 Install common packages"
       package:
-        name: "{{ common_packages }}"
+        name: >-
+          {{
+            ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset'] +
+            (['nfs-utils'] if ansible_distribution == 'Rocky' else ['nfs-common'])
+          }}
         state: present
       tags: always
 
