@@ -8,10 +8,18 @@
   when: container_runtime == 'docker'
   notify: restart docker
 
-- name: Set up kernel modules
-  modprobe:
-    name: "{{ item }}"
-    state: present
+- name: Load kernel modules (overlay, br_netfilter)
+  ansible.builtin.shell: "modprobe {{ item }}"
   loop:
     - overlay
     - br_netfilter
+  become: true
+
+- name: Persist kernel modules across reboots
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/container.conf
+    content: |
+      overlay
+      br_netfilter
+  mode: '0644'
+  become: true
