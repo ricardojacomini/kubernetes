@@ -1,5 +1,13 @@
 # roles/container/tasks/main.yml
 ---
+- name: Set local Docker version
+  set_fact:
+    container_version: "{{ versions.containerd }}"
+
+- name: Print Containerd version
+  debug:
+    msg: "Using containerd version: {{ container_version }}"
+
 - name: Set OS-specific variables
   set_fact:
     pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
