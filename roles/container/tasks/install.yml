@@ -38,6 +38,13 @@
   package:
     name: "{{ docker_packages }}"
     state: present
+  check_mode: no
+  register: docker_pkg_result
+  changed_when: docker_pkg_result is changed
+
+- name: Show Docker install result
+  debug:
+    var: docker_pkg_result
 
 - name: Enable and start Docker
   systemd:
