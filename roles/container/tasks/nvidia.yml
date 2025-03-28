@@ -5,21 +5,21 @@
   ansible.builtin.get_url:
     url: "{{ nvidia_repo_url }}"
     dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
 
 - name: Import NVIDIA GPG key
   shell: |
     rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
     dnf clean all
     dnf makecache
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
 
 - name: Install NVIDIA Container Toolkit
   package:
     name: nvidia-container-toolkit
     state: present
     enablerepo: nvidia-container-toolkit
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
 
 - name: Configure NVIDIA runtime
   copy:
@@ -35,4 +35,4 @@
         "default-runtime": "nvidia"
       }
   notify: restart docker
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]

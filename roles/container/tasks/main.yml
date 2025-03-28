@@ -47,13 +47,13 @@
   register: gpu_check
   changed_when: false
   failed_when: false
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
   when: has_nvidia
 
 - name: Set GPU fact
   set_fact:
     has_nvidia: "{{ gpu_check.rc == 0 }}"
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
   when: has_nvidia
 
 - name: "📦 Install Docker and Container Runtime"
@@ -63,7 +63,7 @@
 - name: "⚙️ Configure NVIDIA GPU Support"
   include_tasks: nvidia.yml
   when: has_nvidia
-  tags: [gpu, nvidia, container]
+  tags: [gpu, nvidia]
   when: has_nvidia
 
 - name: "🔧 Apply Runtime Configuration"

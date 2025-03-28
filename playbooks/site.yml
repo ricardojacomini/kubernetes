@@ -40,6 +40,8 @@
     - name: Set GPU availability fact
       set_fact:
         has_nvidia: "{{ gpu_check.rc == 0 }}"
+      tags: [gpu, nvidia]
+
 
 # 🐳 Configure Container Runtime
 - name: "🐳 Configure Container Runtime"

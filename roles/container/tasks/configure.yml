@@ -13,6 +13,7 @@
   loop:
     - overlay
     - br_netfilter
+  tags: [container, kernel_modules]
 
 # Only needed if you plan to reboot the host later
 - name: Persist kernel modules across reboots
