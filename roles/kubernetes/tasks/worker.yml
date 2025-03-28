@@ -1,5 +1,14 @@
 # roles/kubernetes/tasks/worker.yml
 ---
+
+- name: Set local Kubernetes version
+  set_fact:
+    k8s_version: "{{ versions.kubernetes }}"
+
+- name: Print Kubernetes version
+  debug:
+    msg: "Using Kubernetes version: {{ k8s_version }}"
+
 - name: Install Kubernetes packages
   package:
     name:
@@ -15,28 +24,6 @@
     group: root
     mode: 0644
   notify: restart kubelet
-
-- name: Add NVIDIA repository (Ubuntu)
-  apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/$(ARCH) /"
-    filename: nvidia-container-toolkit
-  when: ansible_distribution == 'Ubuntu'
-
-- name: Install NVIDIA toolkit (Ubuntu)
-  apt:
-    name: nvidia-container-toolkit
-    state: present
-  when: ansible_distribution == 'Ubuntu'
-
-- name: Add NVIDIA repository (Rocky)
-  yum_repository:
-    name: nvidia-container-toolkit
-    description: NVIDIA Container Toolkit
-    baseurl: https://nvidia.github.io/libnvidia-container/stable/rhel$releasever/$basearch
-    gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey
-    gpgcheck: true
-    enabled: true
-  when: ansible_distribution == 'Rocky'
 
 - name: "🔍 Verify Network Range Availability (Worker)"
   shell: |

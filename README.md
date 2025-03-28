@@ -49,10 +49,10 @@ python3 -m pip install -r requirements.txt
 ansible-galaxy install -r requirements.yml
 
 # Deploy (see full options below)
-ansible-playbook -i inventory.ini playbooks/site.yml
+ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations  --check 
 
 # GPU-specific deployment
-ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
+ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu --check
 ```
 
 # ☸️ Kubernetes Cluster Deployment with Ansible
@@ -125,13 +125,13 @@ roles/
 
     ```bash
     # Run all validations
-    ansible-playbook playbooks/site.yml --tags validation
+    ansible-playbook playbooks/site.yml --tags verify --check
 
     # Skip validations (not recommended)
-    ansible-playbook playbooks/site.yml --skip-tags validation
+    ansible-playbook playbooks/site.yml --skip-tags verify --check
 
     # Verify container runtime configs
-    ansible all -m include_role -a name=common tasks_from=validate.yml
+    ansible all -m include_role -a name=common tasks_from=verify.yml --check
     ```
 
     **Best Practices to Avoid Reboots:**
@@ -140,7 +140,7 @@ roles/
 
     ```bash
     ansible-playbook -i inventory.ini playbooks/site.yml \
-      --tags common,docker,kubernetes \
+      --tags preflight,docker,kubernetes \
       --limit reservations --check
     ```
 

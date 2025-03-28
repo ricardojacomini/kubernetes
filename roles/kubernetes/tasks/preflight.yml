@@ -122,15 +122,54 @@
       failed_when: root_space.stdout|int < 10
       tags: validation
 
-    - name: Add Kubernetes repository
-      ansible.builtin.yum_repository:
+- name: Add Kubernetes repository
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: Kubernetes Repo
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    enabled: yes
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey:
+      - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  when: ansible_os_family == "RedHat"
+  tags: [kubernetes, master, worker]
+
+      # 👑 Initialize Control Plane
+- name: "👑 Initialize Control Plane"
+  hosts: master
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  tasks:
+    - name: "Include Kubernetes Master Setup"
+      import_role:
         name: kubernetes
-        description: Kubernetes Repo
-        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-        enabled: yes
-        gpgcheck: yes
-        repo_gpgcheck: yes
-        gpgkey:
-          - https://packages.cloud.google.com/yum/doc/yum-key.gpg
-          - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-      when: ansible_os_family == "RedHat"
+        tasks_from: master.yml
+  tags: [kubernetes, master]
+
+# 🧑‍🚀 Join Worker Nodes
+- name: "🧑‍🚀 Join Worker Nodes"
+  hosts: workers
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Include Kubernetes Worker Setup"
+      import_role:
+        name: kubernetes
+        tasks_from: worker.yml
+      tags: [kubernetes, worker]
+
+# ✅ Validate Deployment
+- name: "✅ Validate Deployment"
+  hosts: reservations
+  become: true
+  tasks:
+    - name: "Include Kubernetes Validation Tasks"
+      import_role:
+        name: kubernetes
+        tasks_from: verify.yml
+      tags: [kubernetes, verify]
