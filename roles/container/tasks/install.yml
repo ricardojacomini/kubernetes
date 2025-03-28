@@ -1,28 +1,36 @@
 # roles/container/tasks/install.yml
 ---
-- name: Update package cache (Rocky only)
+- name: Update DNF cache (Rocky only)
   dnf:
     update_cache: yes
   when: ansible_distribution == "Rocky"
 
-- name: Add Docker repository
+- name: Install dnf-utils for repo management
+  package:
+    name: dnf-utils
+    state: present
+  when: ansible_distribution == "Rocky"
+
+- name: Add Docker repository for Rocky
   shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
   when: ansible_distribution == "Rocky"
 
-- name: Install Docker (Rocky and Ubuntu)
+- name: Clean DNF metadata
+  shell: dnf clean all && dnf makecache
+  when: ansible_distribution == "Rocky"
+
+- name: Install Docker packages
   package:
     name: "{{ docker_packages }}"
     state: present
 
-# Note: docker_packages is set earlier via set_fact in main.yml
-
-- name: Enable and start Docker service
+- name: Enable and start Docker
   systemd:
     name: docker
-    state: started
     enabled: yes
+    state: started
 
 - name: Add user to Docker group
   user:
