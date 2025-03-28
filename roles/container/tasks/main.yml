@@ -32,6 +32,16 @@
   when: ansible_distribution in ['Ubuntu', 'Rocky']
   tags: packages
 
+- name: Define Docker packages
+  set_fact:
+    docker_packages: >-
+      {{
+        ['docker-ce', 'docker-ce-cli', 'containerd.io']
+        if ansible_distribution == 'Rocky'
+        else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin']
+      }}
+  tags: install
+
 - name: Check for NVIDIA GPU
   shell: lspci | grep -q NVIDIA
   register: gpu_check
