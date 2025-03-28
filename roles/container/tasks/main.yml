@@ -2,35 +2,34 @@
 ---
 - name: Set OS-specific variables
   set_fact:
-    # Package manager selection
     pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
-    
-    # NVIDIA repo URL based on OS
     nvidia_repo_url: >-
       {% if ansible_distribution == 'Rocky' %}
-      https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+        https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
       {% else %}
-      https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
+        https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
       {% endif %}
+  tags: always
 
 - name: "📦 Ensure basic dependencies"
   block:
     - name: Set OS package list
       set_fact:
         os_packages: >-
-          {% if ansible_distribution == 'Ubuntu' %}
-          ["apt-transport-https", "ca-certificates", "curl", "software-properties-common"]
-          {% elif ansible_distribution == 'Rocky' %}
-          ["yum-utils", "device-mapper-persistent-data", "lvm2"]
-          {% endif %}
+          {{
+            ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
+            if ansible_distribution == 'Ubuntu'
+            else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
+          }}
+      tags: always
 
     - name: Install OS-specific packages
       package:
         name: "{{ item }}"
         state: present
       loop: "{{ os_packages }}"
-  when: 
-    - ansible_distribution in ['Ubuntu', 'Rocky']
+      tags: always
+  when: ansible_distribution in ['Ubuntu', 'Rocky']
   tags: packages
 
 - name: Check for NVIDIA GPU
@@ -45,12 +44,15 @@
     has_nvidia: "{{ gpu_check.rc == 0 }}"
   tags: nvidia
 
-- include_tasks: install.yml
+- name: "📦 Install Docker and Container Runtime"
+  include_tasks: install.yml
   tags: install
 
-- include_tasks: nvidia.yml
+- name: "⚙️ Configure NVIDIA GPU Support"
+  include_tasks: nvidia.yml
   when: has_nvidia
   tags: nvidia
 
-- include_tasks: configure.yml
+- name: "🔧 Apply Runtime Configuration"
+  include_tasks: configure.yml
   tags: configure
