@@ -1,83 +1,87 @@
 # roles/container/tasks/main.yml
 ---
-- name: Check for NVIDIA GPU
-  shell: lspci | grep -q NVIDIA
-  register: gpu_check
-  changed_when: false
-  failed_when: false # Prevent failure if no NVIDIA GPU is found
-
-      # The grep -q flag:
-      #  - Returns 0 (true) if NVIDIA is found.
-      #  - Returns 1 (false) if NVIDIA is not found.
-      # alias check_nvidia='if lspci | grep -q NVIDIA; then echo "NVIDIA GPU found" else echo "No NVIDIA GPU found" fi'
-
-- name: Set GPU availability fact
-  set_fact:
-    has_nvidia: "{{ gpu_check.rc == 0 }}"
-
-# 🐳 Continue with regular Docker + container setup
-- name: Set local Docker version
-  set_fact:
-    container_version: "{{ versions.containerd }}"
-
-- name: 📦 Container Runtime Setup Set local Docker version
-  set_fact:
-    container_version: "{{ versions.containerd }}"
-
-- name: Print Containerd version
-  debug:
-    msg: "Using containerd version: {{ container_version }}"
-
-- name: Set OS-specific variables
-  set_fact:
-    pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
-    nvidia_repo_url: >-
-      {% if ansible_distribution == 'Rocky' %}
-        https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
-      {% else %}
-        https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
-      {% endif %}
-  tags: always
-
-- name: "📦 Ensure basic dependencies"
+- name: 🐳 Install Container
   block:
-    - name: Set OS package list
+    - name: Check for NVIDIA GPU
+      shell: lspci | grep -q NVIDIA
+      register: gpu_check
+      changed_when: false
+      failed_when: false # Prevent failure if no NVIDIA GPU is found
+
+          # The grep -q flag:
+          #  - Returns 0 (true) if NVIDIA is found.
+          #  - Returns 1 (false) if NVIDIA is not found.
+          # alias check_nvidia='if lspci | grep -q NVIDIA; then echo "NVIDIA GPU found" else echo "No NVIDIA GPU found" fi'
+
+    - name: Set GPU availability fact
       set_fact:
-        os_packages: >-
+        has_nvidia: "{{ gpu_check.rc == 0 }}"
+
+    # 🐳 Continue with regular Docker + container setup
+    - name: Set local Docker version
+      set_fact:
+        container_version: "{{ versions.containerd }}"
+
+    - name: 📦 Container Runtime Setup Set local Docker version
+      set_fact:
+        container_version: "{{ versions.containerd }}"
+
+    - name: Print Containerd version
+      debug:
+        msg: "Using containerd version: {{ container_version }}"
+
+    - name: Set OS-specific variables
+      set_fact:
+        pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
+        nvidia_repo_url: >-
+          {% if ansible_distribution == 'Rocky' %}
+            https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+          {% else %}
+            https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
+          {% endif %}
+      tags: always
+
+    - name: "📦 Ensure basic dependencies"
+      block:
+        - name: Set OS package list
+          set_fact:
+            os_packages: >-
+              {{
+                ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common','dnf-utils']
+                if ansible_distribution == 'Ubuntu'
+                else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
+              }}
+          tags: always
+
+        - name: Install OS-specific packages
+          package:
+            name: "{{ item }}"
+            state: present
+          loop: "{{ os_packages }}"
+          tags: always
+      when: ansible_distribution in ['Ubuntu', 'Rocky']
+      tags: packages
+
+    - name: Define Docker packages
+      set_fact:
+        docker_packages: >-
           {{
-            ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common','dnf-utils']
-            if ansible_distribution == 'Ubuntu'
-            else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
+            ['docker-ce', 'docker-ce-cli', 'containerd.io']
+            if ansible_distribution == 'Rocky'
+            else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
           }}
-      tags: always
 
-    - name: Install OS-specific packages
-      package:
-        name: "{{ item }}"
-        state: present
-      loop: "{{ os_packages }}"
-      tags: always
-  when: ansible_distribution in ['Ubuntu', 'Rocky']
-  tags: packages
+    - name: "📦 Install Docker and Container Runtime"
+      include_tasks: install.yml
 
-- name: Define Docker packages
-  set_fact:
-    docker_packages: >-
-      {{
-        ['docker-ce', 'docker-ce-cli', 'containerd.io']
-        if ansible_distribution == 'Rocky'
-        else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
-      }}
+    # ⏩ Ensure NVIDIA is set up before Docker config (if GPU present)
+    - name: Run NVIDIA tasks first if GPU detected
+      include_tasks: nvidia.yml
+      when: has_nvidia | default(false)
 
-- name: "📦 Install Docker and Container Runtime"
-  include_tasks: install.yml
+    - name: "🔧 Apply Runtime Configuration"
+      include_tasks: configure.yml
+      tags: configure
+      when: container_runtime == 'docker'
 
-# ⏩ Ensure NVIDIA is set up before Docker config (if GPU present)
-- name: Run NVIDIA tasks first if GPU detected
-  include_tasks: nvidia.yml
-  when: has_nvidia | default(false)
-  tags: [install]
-
-- name: "🔧 Apply Runtime Configuration"
-  include_tasks: configure.yml
-  tags: configure
+  tags: [container]

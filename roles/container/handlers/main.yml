@@ -1,46 +1,40 @@
 # roles/container/handlers
+#
 ---
-- name: 🐳 Install Container
-  block:
-    #  Restart Docker
-    - name: restart docker
-      ansible.builtin.service:
-        name: docker
-        state: restarted
-      when: container_runtime == 'docker'
+# 🔄 Container Runtime Handlers
 
-    # 🧊 Restart Containerd
-    - name: restart containerd
-      ansible.builtin.systemd:
-        name: containerd
-        state: restarted
-      when: container_runtime == 'containerd'
+- name: "🔄 Restart Docker"
+  service:
+    name: docker
+    state: restarted
+    enabled: yes
+  when: container_runtime == 'docker'
 
-    # ⚡ Apply NVIDIA Runtime Configuration (Docker only)
-    - name: apply nvidia runtime
-      ansible.builtin.shell: |
-        systemctl restart docker
-        nvidia-ctk runtime configure --runtime=docker
-        systemctl restart docker
-      when:
-        - container_runtime == 'docker'
-      tags: nvidia
+- name: "🔄 Reload Containerd"
+  systemd:
+    name: containerd
+    state: reloaded
+  when: container_runtime == 'containerd'
 
-    # 🧰 Reload Containerd Config (from toml)
-    - name: reload containerd
-      ansible.builtin.systemd:
-        name: containerd
-        state: reloaded
-      when: container_runtime == 'containerd'
+- name: "⚡ Apply NVIDIA Runtime Changes"
+  shell: |
+    systemctl restart docker && \
+    nvidia-ctk runtime configure --runtime=docker && \
+    systemctl restart docker
+  when: 
+    - has_nvidia
+    - container_runtime == 'docker'
+  tags: nvidia
 
-    # 🧹 Cleanup Temporary Files
-    - name: cleanup temp files
-      ansible.builtin.file:
-        path: "/tmp/{{ item }}"
-        state: absent
-      loop:
-        - nvidia_install.log
-        - docker_setup.tmp
-        - nvidia-container-runtime.log
-        - nvidia-container-runtime-hook.log  
-  tags: [container]
+- name: "📜 Update Container Config"
+  command: containerd config default > /etc/containerd/config.toml
+  when: container_runtime == 'containerd'
+  notify: "🔄 Reload Containerd"
+
+- name: "🧹 Cleanup Temporary Files"
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  loop:
+    - nvidia_install.log
+    - docker_setup.tmp
