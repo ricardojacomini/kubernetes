@@ -71,13 +71,13 @@
             else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
           }}
 
-    - name: "📦 Install Docker and Container Runtime"
-      include_tasks: install.yml
-
     # ⏩ Ensure NVIDIA is set up before Docker config (if GPU present)
     - name: Run NVIDIA tasks first if GPU detected
       include_tasks: nvidia.yml
       when: has_nvidia | default(false)
+
+    - name: "📦 Install Docker and Container Runtime"
+      include_tasks: install.yml
 
     - name: "🔧 Apply Runtime Configuration"
       include_tasks: configure.yml
