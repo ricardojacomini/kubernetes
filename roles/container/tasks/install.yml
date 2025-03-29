@@ -1,73 +1,77 @@
 # roles/container/tasks/install.yml
 ---
-- name: Update DNF cache (Rocky only)
-  dnf:
-    update_cache: yes
-  when: ansible_distribution == "Rocky"
 
-- name: Install dnf-utils for repo management
-  package:
-    name: dnf-utils
-    state: present
-  when: ansible_distribution == "Rocky"
+- name: 🐳 Install Container
+  block:
 
-- name: Add Docker repository for Rocky
-  ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  args:
-    creates: /etc/yum.repos.d/docker-ce.repo
-  when: ansible_distribution == "Rocky"
+    - name: Update DNF cache (Rocky only)
+      dnf:
+        update_cache: yes
+      when: ansible_distribution == "Rocky"
 
-- name: Import Docker GPG key (optional but recommended)
-  rpm_key:
-    state: present
-    key: https://download.docker.com/linux/centos/gpg
-  when: ansible_distribution == "Rocky"
+    - name: Install dnf-utils for repo management
+      package:
+        name: dnf-utils
+        state: present
+      when: ansible_distribution == "Rocky"
 
-- name: Clean DNF metadata
-  shell: dnf clean all && dnf makecache
-  when: ansible_distribution == "Rocky"
+    - name: Add Docker repository for Rocky
+      ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      args:
+        creates: /etc/yum.repos.d/docker-ce.repo
+      when: ansible_distribution == "Rocky"
 
-- name: Verify docker-ce is available before install
-  shell: dnf list docker-ce docker-ce-cli containerd.io
-  register: docker_check
-  failed_when: docker_check.rc != 0
-  changed_when: false
-  when: ansible_distribution == "Rocky"
+    - name: Import Docker GPG key (optional but recommended)
+      rpm_key:
+        state: present
+        key: https://download.docker.com/linux/centos/gpg
+      when: ansible_distribution == "Rocky"
 
-- name: Install Docker packages
-  package:
-    name: "{{ docker_packages }}"
-    state: present
-  check_mode: no
-  register: docker_pkg_result
-  changed_when: docker_pkg_result is changed
+    - name: Clean DNF metadata
+      shell: dnf clean all && dnf makecache
+      when: ansible_distribution == "Rocky"
 
-- name: Show Docker install result
-  debug:
-    var: docker_pkg_result
+    - name: Verify docker-ce is available before install
+      shell: dnf list docker-ce docker-ce-cli containerd.io
+      register: docker_check
+      failed_when: docker_check.rc != 0
+      changed_when: false
+      when: ansible_distribution == "Rocky"
 
-- name: Enable and start Docker
-  systemd:
-    name: docker
-    enabled: yes
-    state: started
+    - name: Install Docker packages
+      package:
+        name: "{{ docker_packages }}"
+        state: present
+      check_mode: no
+      register: docker_pkg_result
+      changed_when: docker_pkg_result is changed
 
-- name: Ensure 'docker' group exists
-  group:
-    name: docker
-    state: present
+    - name: Show Docker install result
+      debug:
+        var: docker_pkg_result
 
-- name: Add user to Docker group
-  user:
-    name: "{{ ansible_user }}"
-    groups: docker
-    append: yes
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
 
-- name: 🚨 Reminder to re-login for Docker group changes
-  debug:
-    msg: >
-      Docker group membership has been updated for {{ ansible_user_id }}.
-      Please log out and log back in for the changes to take effect.
-# sudo usermod -aG docker $USER
-# newgrp docker
+    - name: Ensure 'docker' group exists
+      group:
+        name: docker
+        state: present
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: 🚨 Reminder to re-login for Docker group changes
+      debug:
+        msg: >
+          Docker group membership has been updated for {{ ansible_user_id }}.
+          Please log out and log back in for the changes to take effect.
+    # sudo usermod -aG docker $USER
+    # newgrp docker
 
