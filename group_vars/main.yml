@@ -2,13 +2,14 @@
 ---
 # Version Pinnings
 versions:
-  kubernetes: "1.28.0"
+  kubernetes: "1.32.0"
   containerd: "1.7.0"
   docker: "24.0"
   nvidia:
-    driver: "525.85.12"
+    driver: "550.127.05"
     toolkit: "v0.14.1"
     device_plugin: "v0.14.1"
+    cuda: "12.4"
 
 # Docker Defaults
 docker_config:
