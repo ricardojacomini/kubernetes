@@ -63,6 +63,9 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit g
 # Deploy kubernetes
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
 
+# Deploy kubernetes master
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit master  --check
+
 ```
 
 # ☸️ Kubernetes Cluster Deployment with Ansible
