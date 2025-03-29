@@ -16,7 +16,7 @@
 
 - name: Check if conflicting NVIDIA or Docker packages are installed
   shell: |
-    rpm -q cm-nvidia-container-toolkit cm-docker || true
+    rpm -qa cm-nvidia-container-toolkit cm-docker* || true
   register: conflicting_pkgs
   changed_when: false
   failed_when: false
