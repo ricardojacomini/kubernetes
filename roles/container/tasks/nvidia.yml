@@ -8,7 +8,7 @@
     curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
     sudo rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
     dnf clean all && dnf makecache
-  when: has_nvidia
+  tags: [gpu, nvidia]
 
 - name: Verify NVIDIA Container Toolkit availability
   shell: dnf list nvidia-container-toolkit
