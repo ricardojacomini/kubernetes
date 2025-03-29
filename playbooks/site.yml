@@ -17,7 +17,7 @@
         include_role:
           name: container
           tasks_from: main.yml
-        tags: always
+        tags: [always, container, preflight]
 
       - name: "🔍 Include Kubernetes Pre-Flight Checks"
         include_role:
