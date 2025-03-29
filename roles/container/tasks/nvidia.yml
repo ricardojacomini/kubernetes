@@ -8,6 +8,10 @@
     curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
     rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
     dnf clean all && dnf makecache
+  become: true
+  args:
+    warn: false
+  register: nvidia_repo
   tags: [nvidia, install]
 
 - name: Check if conflicting NVIDIA or Docker packages are installed
