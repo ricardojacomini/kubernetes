@@ -4,13 +4,14 @@
   "log-opts": {
     "max-size": "100m"
   },
-  "storage-driver": "overlay2"{% if has_nvidia | default(false) %},
+  "storage-driver": "overlay2",
   "runtimes": {
     "nvidia": {
       "path": "/usr/bin/nvidia-container-runtime",
       "runtimeArgs": []
     }
   },
-  "default-runtime": "nvidia"{% endif %},
-  "live-restore": true
+  "default-runtime": "nvidia",
+  "live-restore": true,
+  "data-root": "/tmp/docker"
 }
