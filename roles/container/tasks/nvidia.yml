@@ -23,6 +23,12 @@
         state: absent
       ignore_errors: yes  # Ignore if not installed or other errors
 
+    - name: Remove conflicting Docker packages
+      package:
+        name: cm-docker
+        state: absent
+      ignore_errors: true
+
     - name: Install NVIDIA Container Toolkit packages
       dnf:
         name: nvidia-container-toolkit
