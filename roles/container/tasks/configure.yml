@@ -1,6 +1,15 @@
+---
 # roles/container/tasks/configure.yml
 
----
+- name: Ensure Docker data-root directory exists
+  file:
+    path: /tmp/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0711'
+  when: container_runtime == 'docker'
+
 - name: Configure container runtime (NVIDIA or default)
   template:
     src: "{{ 'daemon.nvidia.json.j2' if has_nvidia | default(false) else 'daemon.docker.json.j2' }}"
@@ -16,12 +25,15 @@
   loop:
     - overlay
     - br_netfilter
+  become: true
 
-# Only needed if you plan to reboot the host later
 - name: Persist kernel modules across reboots
   copy:
     dest: /etc/modules-load.d/container.conf
     content: |
       overlay
       br_netfilter
+    owner: root
+    group: root
     mode: '0644'
+  become: true
