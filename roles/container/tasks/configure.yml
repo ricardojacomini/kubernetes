@@ -9,7 +9,7 @@
     group: root
     mode: '0644'
   when: container_runtime == 'docker'
-  notify: restart docker
+  notify: "🔄 Restart Docker"
 
 - name: Load kernel modules (overlay, br_netfilter)
   ansible.builtin.shell: "modprobe {{ item }}"

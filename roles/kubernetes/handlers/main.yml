@@ -1,0 +1,6 @@
+# roles/kubernetes/tasks/handlers/main.yml
+- name: "🔄 Restart Kubelet"
+  systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes
