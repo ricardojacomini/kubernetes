@@ -1,8 +1,8 @@
-# roles/kubernetes/tasks/handlers/main.yml
+# roles/kubernetes/handlers/main.yml
 - name: "🔄 Restart Kubelet"
   block:
     - name: "📡 Gather service facts before restarting kubelet"
-      service_facts:
+      ansible.builtin.service_facts:
 
     - name: "🔁 Restart kubelet only if service exists"
       ansible.builtin.systemd:
