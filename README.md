@@ -66,6 +66,9 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 # Deploy kubernetes master
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit master  --check
 
+# Check Docker's actual root directory
+docker info | grep "Docker Root Dir"
+
 ```
 
 # ☸️ Kubernetes Cluster Deployment with Ansible

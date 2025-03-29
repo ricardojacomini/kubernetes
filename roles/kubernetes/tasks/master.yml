@@ -26,7 +26,7 @@
     mode: 0644
   notify: "🔄 Restart Kubelet"
   tags: [kubernetes, kubelet]
-  
+
 - name: "🛡️ Initialize Kubernetes Control Plane"
   command: >
     kubeadm init
@@ -46,6 +46,8 @@
     content: "{{ kubeadm_init.stdout_lines[-1] }}"
     dest: /root/join-command.sh
     mode: 0755
+  when: kubeadm_init.stdout_lines is defined and kubeadm_init.stdout_lines | length > 0
+
 
 - name: "🏗️ Setup kubectl Config for user"
   block:
