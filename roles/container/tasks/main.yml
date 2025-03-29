@@ -52,7 +52,7 @@
 
 - name: "📦 Install Docker and Container Runtime"
   include_tasks: install.yml
-  tags: [install, docker]
+  tags: [install]
 
 - name: "🔧 Apply Runtime Configuration"
   include_tasks: configure.yml
@@ -71,8 +71,6 @@
   tags: [gpu, nvidia]
 
 - name: Include NVIDIA role if GPU is present
-  include_role:
-    name: nvidia
-    tasks_from: nvidia.yml
+  include_tasks: nvidia.yml
   when: has_nvidia | default(false)
   tags: [gpu, nvidia]
