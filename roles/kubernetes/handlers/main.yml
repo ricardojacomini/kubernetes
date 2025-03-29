@@ -1,6 +1,12 @@
 # roles/kubernetes/tasks/handlers/main.yml
 - name: "🔄 Restart Kubelet"
-  ansible.builtin.systemd:
-    name: kubelet
-    state: restarted
-    enabled: yes
+  block:
+    - name: "📡 Gather service facts before restarting kubelet"
+      service_facts:
+
+    - name: "🔁 Restart kubelet only if service exists"
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
+        enabled: yes
+      when: "'kubelet.service' in ansible_facts.services"
