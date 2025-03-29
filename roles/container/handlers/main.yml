@@ -19,7 +19,7 @@
 - name: "⚡ Apply NVIDIA Runtime Changes"
   shell: |
     systemctl restart docker && \
-    nvidia-ctk runtime configure --runtime=docker && \
+    nvidia-ctk runtime configure --runtime={{ container_runtime }} && \
     systemctl restart docker
   when: 
     - has_nvidia
