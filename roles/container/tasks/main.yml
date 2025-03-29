@@ -52,25 +52,20 @@
 
 - name: "📦 Install Docker and Container Runtime"
   include_tasks: install.yml
-  tags: [preflight,container,install]
 
 - name: "🔧 Apply Runtime Configuration"
   include_tasks: configure.yml
-  tags: configure
 
 - name: "🐳 Configure Container Runtime (with GPU detection)"
   shell: lspci | grep -q NVIDIA
   register: gpu_check
   changed_when: false
   failed_when: false
-  tags: [preflight, nvidia,install]
 
 - name: Set GPU availability fact
   set_fact:
     has_nvidia: "{{ gpu_check.rc == 0 }}"
-  tags: [preflight, nvidia,install]
 
 - name: Include NVIDIA role if GPU is present
   include_tasks: nvidia.yml
   when: has_nvidia | default(false)
-  tags: [preflight, nvidia,install]
