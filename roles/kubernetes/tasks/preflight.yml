@@ -124,11 +124,17 @@
   ansible.builtin.yum_repository:
     name: kubernetes
     description: Kubernetes Repo
-    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ versions.kubernetes | regex_search('^\\d+\\.\\d+') }}/rpm/"
+    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ versions.k8s.repo | regex_search('^\\d+\\.\\d+') }}/rpm/"
     enabled: yes
     gpgcheck: yes
     repo_gpgcheck: yes
     gpgkey:
-      - "https://pkgs.k8s.io/core:/stable:/v{{ versions.kubernetes | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
+      - "https://pkgs.k8s.io/core:/stable:/v{{ versions.k8s.repo | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
+  when: ansible_os_family == "RedHat"
+  tags: [kubernetes, preflight]
+
+- name: Refresh DNF metadata after adding Kubernetes repo
+  command: dnf makecache --enablerepo=kubernetes
+  changed_when: false
   when: ansible_os_family == "RedHat"
   tags: [kubernetes, preflight]
