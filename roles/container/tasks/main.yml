@@ -17,7 +17,6 @@
       {% else %}
         https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
       {% endif %}
-  tags: always
 
 - name: "📦 Ensure basic dependencies"
   block:
@@ -29,14 +28,12 @@
             if ansible_distribution == 'Ubuntu'
             else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
           }}
-      tags: always
 
     - name: Install OS-specific packages
       package:
         name: "{{ item }}"
         state: present
       loop: "{{ os_packages }}"
-      tags: always
   when: ansible_distribution in ['Ubuntu', 'Rocky']
   tags: packages
 
@@ -48,7 +45,6 @@
         if ansible_distribution == 'Rocky'
         else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
       }}
-  tags: install
 
 - name: "📦 Install Docker and Container Runtime"
   include_tasks: install.yml
