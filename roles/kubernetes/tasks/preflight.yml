@@ -124,12 +124,12 @@
   ansible.builtin.yum_repository:
     name: kubernetes
     description: Kubernetes Repo
-    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ versions['k8s.repo'] | regex_search('^\\d+\\.\\d+') }}/rpm/"
+      - "https://pkgs.k8s.io/core:/stable:/v{{ versions.k8s.repo | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
     enabled: yes
     gpgcheck: yes
     repo_gpgcheck: yes
     gpgkey:
-      - "https://pkgs.k8s.io/core:/stable:/v{{ versions['k8s.repo'] | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
+      - "https://pkgs.k8s.io/core:/stable:/v{{ versions.k8s.repo | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
   when: ansible_os_family == "RedHat"
   tags: [kubernetes, preflight]
 
