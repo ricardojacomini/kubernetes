@@ -25,14 +25,13 @@
 - name: Remove conflicting packages if they exist
   package:
     name:
-      - nvidia-container-toolkit
+      - cm-nvidia-container-toolkit
       - cm-docker
     state: absent
   when: >
     "'nvidia-container-toolkit is not installed' not in conflicting_pkgs.stdout or
      'cm-docker is not installed' not in conflicting_pkgs.stdout"
   tags: [nvidia, install]
-
 
 - name: Install NVIDIA Container Toolkit (from proper repo)
   dnf:
