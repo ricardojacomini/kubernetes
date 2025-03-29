@@ -52,7 +52,7 @@ ansible-galaxy install -r requirements.yml
 ansible-playbook -i inventory.ini playbooks/site.yml --list-tags
 
 # Deploy (see full options below)
-ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations --check 
+ansible-playbook -i inventory.ini playbooks/site.yml  --limit reservations --check 
 
 # Deploy container
 ansible-playbook -i inventory.ini playbooks/site.yml --tags container --limit reservations --check
@@ -61,7 +61,7 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags container --limit re
 ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit gpu --check
 
 # Deploy kubernetes
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight -limit reservations  --check
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
 
 ```
 
