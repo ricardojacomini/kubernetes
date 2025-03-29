@@ -27,11 +27,15 @@
   command: systemctl daemon-reexec && systemctl daemon-reload
   changed_when: false
 
+- name: Gather service facts
+  service_facts:
+
 - name: Ensure kubelet service is enabled and started
   systemd:
     name: kubelet
     enabled: yes
     state: started
+  when: "'kubelet.service' in ansible_facts.services"
 
 - name: Configure kubelet
   template:
