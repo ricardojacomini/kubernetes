@@ -2,7 +2,7 @@
 ---
 # Version Pinnings
 versions:
-  kubernetes: "1.32.0"
+  kubernetes: "1.32"
   containerd: "1.7.0"
   docker: "24.0"
   nvidia:
