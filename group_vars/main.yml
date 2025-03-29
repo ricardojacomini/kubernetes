@@ -4,7 +4,8 @@
 versions:
   kubernetes: "1.32.3"
   kubernetes_cni: "1.6.0"
-  k8s.repo: "1.32"
+  k8s:
+    repo: "1.32"
   containerd: "1.7.0"
   docker: "24.0"
   nvidia:
