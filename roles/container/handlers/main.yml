@@ -43,4 +43,4 @@
         - docker_setup.tmp
         - nvidia-container-runtime.log
         - nvidia-container-runtime-hook.log  
-  tags: [container, install]
+  tags: [container]
