@@ -120,18 +120,15 @@
       failed_when: root_space.stdout|int < 10
       tags: validation
 
-- name: Add Kubernetes repository
+- name: Add Kubernetes repository (pkgs.k8s.io for Rocky 9+)
   ansible.builtin.yum_repository:
     name: kubernetes
     description: Kubernetes Repo
-    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ versions.kubernetes | regex_search('^\\d+\\.\\d+') }}/rpm/"
     enabled: yes
     gpgcheck: yes
     repo_gpgcheck: yes
     gpgkey:
-      - https://packages.cloud.google.com/yum/doc/yum-key.gpg
-      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      - "https://pkgs.k8s.io/core:/stable:/v{{ versions.kubernetes | regex_search('^\\d+\\.\\d+') }}/rpm/repodata/repomd.xml.key"
   when: ansible_os_family == "RedHat"
   tags: [kubernetes, preflight]
-
-  
