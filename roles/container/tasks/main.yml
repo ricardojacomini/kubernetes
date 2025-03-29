@@ -1,75 +1,81 @@
 # roles/container/tasks/main.yml
 ---
-- name: Set local Docker version
-  set_fact:
-    container_version: "{{ versions.containerd }}"
-
-- name: Print Containerd version
-  debug:
-    msg: "Using containerd version: {{ container_version }}"
-
-- name: Set OS-specific variables
-  set_fact:
-    pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
-    nvidia_repo_url: >-
-      {% if ansible_distribution == 'Rocky' %}
-        https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
-      {% else %}
-        https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
-      {% endif %}
-  tags: always
-
-- name: "📦 Ensure basic dependencies"
+- name: "📦 Container Runtime Setup Block"
   block:
-    - name: Set OS package list
+
+    - name: Set local Docker version
       set_fact:
-        os_packages: >-
+        container_version: "{{ versions.containerd }}"
+
+    - name: Print Containerd version
+      debug:
+        msg: "Using containerd version: {{ container_version }}"
+
+    - name: Set OS-specific variables
+      set_fact:
+        pkg_mgr: "{{ 'dnf' if ansible_distribution == 'Rocky' else 'apt' }}"
+        nvidia_repo_url: >-
+          {% if ansible_distribution == 'Rocky' %}
+            https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+          {% else %}
+            https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/amd64/nvidia-container-toolkit.list
+          {% endif %}
+      tags: always
+
+    - name: "📦 Ensure basic dependencies"
+      block:
+        - name: Set OS package list
+          set_fact:
+            os_packages: >-
+              {{
+                ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common','dnf-utils']
+                if ansible_distribution == 'Ubuntu'
+                else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
+              }}
+          tags: always
+
+        - name: Install OS-specific packages
+          package:
+            name: "{{ item }}"
+            state: present
+          loop: "{{ os_packages }}"
+          tags: always
+      when: ansible_distribution in ['Ubuntu', 'Rocky']
+      tags: packages
+
+    - name: Define Docker packages
+      set_fact:
+        docker_packages: >-
           {{
-            ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common','dnf-utils']
-            if ansible_distribution == 'Ubuntu'
-            else ['yum-utils', 'device-mapper-persistent-data', 'lvm2']
+            ['docker-ce', 'docker-ce-cli', 'containerd.io']
+            if ansible_distribution == 'Rocky'
+            else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
           }}
-      tags: always
+      tags: install
 
-    - name: Install OS-specific packages
-      package:
-        name: "{{ item }}"
-        state: present
-      loop: "{{ os_packages }}"
-      tags: always
-  when: ansible_distribution in ['Ubuntu', 'Rocky']
-  tags: packages
+    - name: "📦 Install Docker and Container Runtime"
+      include_tasks: install.yml
+      tags: install
 
-- name: Define Docker packages
-  set_fact:
-    docker_packages: >-
-      {{
-        ['docker-ce', 'docker-ce-cli', 'containerd.io']
-        if ansible_distribution == 'Rocky'
-        else ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-buildx-plugin','docker-compose-plugin']
-      }}
-  tags: install
+    - name: "🔧 Apply Runtime Configuration"
+      include_tasks: configure.yml
+      tags: configure
 
-- name: "📦 Install Docker and Container Runtime"
-  include_tasks: install.yml
-  tags: install
+    - name: "🐳 Configure Container Runtime (with GPU detection)"
+      shell: lspci | grep -q NVIDIA
+      register: gpu_check
+      changed_when: false
+      failed_when: false
 
-- name: "🔧 Apply Runtime Configuration"
-  include_tasks: configure.yml
-  tags: configure
+    - name: Set GPU availability fact
+      set_fact:
+        has_nvidia: "{{ gpu_check.rc == 0 }}"
+      tags: install
 
-- name: "🐳 Configure Container Runtime (with GPU detection)"
-  shell: lspci | grep -q NVIDIA
-  register: gpu_check
-  changed_when: false
-  failed_when: false
+    - name: Include NVIDIA role if GPU is present
+      include_tasks: nvidia.yml
+      when: has_nvidia | default(false)
+      tags: install
 
-- name: Set GPU availability fact
-  set_fact:
-    has_nvidia: "{{ gpu_check.rc == 0 }}"
-  tags: install
+  tags: [container]
 
-- name: Include NVIDIA role if GPU is present
-  include_tasks: nvidia.yml
-  when: has_nvidia | default(false)
-  tags: install

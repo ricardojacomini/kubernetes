@@ -23,7 +23,6 @@
     nvidia-ctk runtime configure --runtime=docker
     systemctl restart docker
   when:
-    - has_nvidia
     - container_runtime == 'docker'
   tags: nvidia
 
