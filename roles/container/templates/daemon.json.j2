@@ -4,7 +4,7 @@
   "log-opts": {
     "max-size": "100m"
   },
-  "storage-driver": "overlay2"{% if has_nvidia %},
+  "storage-driver": "overlay2"{% if has_nvidia | default(false) %},
   "runtimes": {
     "nvidia": {
       "path": "/usr/bin/nvidia-container-runtime",

@@ -1,9 +1,9 @@
 # roles/container/tasks/configure.yml
 
 ---
-- name: Configure container runtime
+- name: Configure container runtime (NVIDIA or default)
   template:
-    src: daemon.json.j2
+    src: "{{ 'daemon.nvidia.json.j2' if has_nvidia | default(false) else 'daemon.default.json.j2' }}"
     dest: /etc/docker/daemon.json
   when: container_runtime == 'docker'
   notify: restart docker
