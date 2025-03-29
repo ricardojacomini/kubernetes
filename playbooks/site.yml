@@ -23,7 +23,7 @@
         include_role:
           name: kubernetes
           tasks_from: preflight.yml
-        tags: [kubernetes, install]
+        tags: [kubernetes, preflight]
 
 # 👑 Initialize Control Plane
 - name: "👑 Initialize Control Plane"
