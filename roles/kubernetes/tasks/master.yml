@@ -17,6 +17,18 @@
       - kubernetes-cni-{{ versions.kubernetes_cni }}
     state: present
 
+# ✅ Ensure kubelet service is available before triggering any handlers
+- name: Ensure kubelet is installed
+  package:
+    name: kubelet
+    state: present
+
+- name: Ensure kubelet service is enabled and started
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+
 - name: Configure kubelet
   template:
     src: kubelet.conf.j2
