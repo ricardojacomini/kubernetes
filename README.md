@@ -52,16 +52,16 @@ ansible-galaxy install -r requirements.yml
 ansible-playbook -i inventory.ini playbooks/site.yml --list-tags
 
 # Deploy (see full options below)
-ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations  --check 
+ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations --check 
 
 # Deploy container
-ansible-playbook -i inventory.ini playbooks/site.yml --tags container,install -limit reservations 
+ansible-playbook -i inventory.ini playbooks/site.yml --tags container --limit reservations --check
 
 # Deploy GPU on node
-ansible-playbook -i inventory.ini playbooks/site.yml --tags container,nvidia,install --limit gpu
+ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit gpu --check
 
 # Deploy kubernetes
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight -limit reservations 
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight -limit reservations  --check
 
 # GPU-specific deployment
 ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu --check
