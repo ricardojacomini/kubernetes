@@ -44,7 +44,7 @@
     owner: root
     group: root
     mode: 0644
-  notify: "🔄 Restart Kubelet
+  notify: "🔄 Restart Kubelet"
   tags: [kubernetes, kubelet]
 
 - name: "🛡️ Initialize Kubernetes Control Plane"
