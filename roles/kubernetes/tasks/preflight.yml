@@ -92,7 +92,6 @@
           register: gpu_detected
           changed_when: false
           failed_when: false
-          tags: gpu,validation
 
         - name: "📦 Install GPU build dependencies"
           package:
@@ -103,16 +102,15 @@
           when: 
             - gpu_detected.rc == 0
             - "'gpu' in group_names"
-          tags: gpu
 
         - name: "🔌 Verify CUDA compatibility"
-          command: lspci -v | grep -i nvidia | grep -iq 'vga compatible controller'
+          command: lspci -nn | grep -i 'nvidia'
           when: "'gpu' in group_names"
           register: cuda_compatible
           changed_when: false
           failed_when: cuda_compatible.rc != 0
-          tags: gpu,validation
       when: "'gpu' in group_names"
+      tags: validation
 
     # Disk space check
     - name: "💾 Verify root partition space (10GB minimum)"
@@ -134,6 +132,6 @@
       - https://packages.cloud.google.com/yum/doc/yum-key.gpg
       - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
   when: ansible_os_family == "RedHat"
-  tags: [kubernetes, master, worker]
+  tags: [kubernetes, preflight]
 
   
