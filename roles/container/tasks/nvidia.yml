@@ -6,56 +6,44 @@
 - name: Configure NVIDIA repository
   shell: |
     curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
-    sudo rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
+    rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
     dnf clean all && dnf makecache
   tags: [nvidia, install]
 
-- name: Verify NVIDIA Container Toolkit availability
-  shell: dnf list nvidia-container-toolkit
-  register: nvidia_check
-  failed_when: nvidia_check.rc != 0
-
-- name: Install NVIDIA Container Toolkit and configure Docker
-  block:
-    - name: Remove conflicting NVIDIA packages
-      dnf:
-        name: cm-nvidia-container-toolkit
-        state: absent
-      ignore_errors: yes  # Ignore if not installed or other errors
-
-    - name: Remove conflicting Docker packages
-      package:
-        name: cm-docker
-        state: absent
-      ignore_errors: true
-
-    - name: Install NVIDIA Container Toolkit packages
-      dnf:
-        name: nvidia-container-toolkit
-        state: present
-        # Force the installation by overriding potential conflicts
-        # This ensures the toolkit is installed and any conflicts are resolved
-        # during the installation process.
-        enablerepo: nvidia-container-toolkit
-        install_weak_deps: false
-
-    - name: Configure Docker for NVIDIA
-      shell: |
-        nvidia-ctk runtime configure --runtime=docker
+- name: Check if conflicting NVIDIA or Docker packages are installed
+  shell: |
+    rpm -q nvidia-container-toolkit cm-docker || true
+  register: conflicting_pkgs
+  changed_when: false
+  failed_when: false
   tags: [nvidia, install]
 
-- name: Configure NVIDIA runtime
-  copy:
-    dest: /etc/docker/daemon.json
-    content: |
-      {
-        "runtimes": {
-          "nvidia": {
-            "path": "/usr/bin/nvidia-container-runtime",
-            "runtimeArgs": []
-          }
-        },
-        "default-runtime": "nvidia"
-      }
-  notify: restart docker
+- name: Remove conflicting packages if they exist
+  package:
+    name:
+      - nvidia-container-toolkit
+      - cm-docker
+    state: absent
+  when: >
+    "'nvidia-container-toolkit is not installed' not in conflicting_pkgs.stdout or
+     'cm-docker is not installed' not in conflicting_pkgs.stdout"
   tags: [nvidia, install]
+
+
+- name: Install NVIDIA Container Toolkit (from proper repo)
+  dnf:
+    name: nvidia-container-toolkit
+    state: present
+    enablerepo: nvidia-container-toolkit
+    install_weak_deps: false
+    # Force the installation by overriding potential conflicts
+    # This ensures the toolkit is installed and any conflicts are resolved
+    # during the installation process.
+  tags: [nvidia, install]
+
+- name: Configure Docker for NVIDIA
+  shell: |
+    nvidia-ctk runtime configure --runtime=docker
+  when: ansible_facts['distribution'] == 'Rocky'  # or any condition to guard it
+  tags: [nvidia, install]
+
