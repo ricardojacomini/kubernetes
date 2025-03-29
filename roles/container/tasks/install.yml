@@ -63,6 +63,11 @@
     groups: docker
     append: yes
 
+- name: 🚨 Reminder to re-login for Docker group changes
+  debug:
+    msg: >
+      Docker group membership has been updated for {{ ansible_user_id }}.
+      Please log out and log back in for the changes to take effect.
 # sudo usermod -aG docker $USER
 # newgrp docker
 

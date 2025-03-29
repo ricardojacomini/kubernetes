@@ -57,6 +57,9 @@ ansible-playbook -i inventory.ini playbooks/site.yml  -limit reservations  --che
 # Deploy container
 ansible-playbook -i inventory.ini playbooks/site.yml --tags container,install -limit reservations 
 
+# Deploy GPU on node
+ansible-playbook -i inventory.ini playbooks/site.yml --tags container,nvidia,install --limit gpu
+
 # Deploy kubernetes
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight -limit reservations 
 
