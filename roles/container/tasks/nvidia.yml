@@ -8,7 +8,7 @@
     curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
     sudo rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
     dnf clean all && dnf makecache
-  tags: [gpu, nvidia]
+  tags: [nvidia, install]
 
 - name: Verify NVIDIA Container Toolkit availability
   shell: dnf list nvidia-container-toolkit
@@ -42,7 +42,7 @@
     - name: Configure Docker for NVIDIA
       shell: |
         nvidia-ctk runtime configure --runtime=docker
-  tags: [gpu, nvidia]
+  tags: [nvidia, install]
 
 - name: Configure NVIDIA runtime
   copy:
@@ -58,4 +58,4 @@
         "default-runtime": "nvidia"
       }
   notify: restart docker
-  tags: [gpu, nvidia]
+  tags: [nvidia, install]
