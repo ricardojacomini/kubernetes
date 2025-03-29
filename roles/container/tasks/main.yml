@@ -63,14 +63,14 @@
   register: gpu_check
   changed_when: false
   failed_when: false
-  tags: [preflight, container,install]
+  tags: [preflight, nvidia,install]
 
 - name: Set GPU availability fact
   set_fact:
     has_nvidia: "{{ gpu_check.rc == 0 }}"
-  tags: [preflight, container,install]
+  tags: [preflight, nvidia,install]
 
 - name: Include NVIDIA role if GPU is present
   include_tasks: nvidia.yml
   when: has_nvidia | default(false)
-  tags: [preflight, container,install]
+  tags: [preflight, nvidia,install]
