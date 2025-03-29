@@ -23,6 +23,10 @@
     name: kubelet
     state: present
 
+- name: Reload systemd to detect new services
+  command: systemctl daemon-reexec && systemctl daemon-reload
+  changed_when: false
+
 - name: Ensure kubelet service is enabled and started
   systemd:
     name: kubelet
