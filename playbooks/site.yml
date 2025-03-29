@@ -17,7 +17,7 @@
         include_role:
           name: container
           tasks_from: main.yml
-        tags: [container, install]
+        tags: always
 
       - name: "🔍 Include Kubernetes Pre-Flight Checks"
         include_role:
@@ -25,40 +25,46 @@
           tasks_from: preflight.yml
         tags: [kubernetes, preflight]
 
-      # 👑 Initialize Control Plane
-      - name: "👑 Initialize Control Plane"
-        hosts: master
-        become: true
-        gather_facts: true
-        vars_files:
-          - ../group_vars/main.yml
-          - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
-        tasks:
-          - name: "Include Kubernetes Master Setup"
-            import_role:
-              name: kubernetes
-              tasks_from: master.yml
-            tags: [kubernetes, master]
+# 👑 Initialize Control Plane
+- name: "👑 Initialize Control Plane"
+  hosts: master
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  tasks:
+    - name: "Include Kubernetes Master Setup"
+      import_role:
+        name: kubernetes
+        tasks_from: master.yml
+      tags: [kubernetes, master]
 
-      # 🧑‍🚀 Join Worker Nodes
-      - name: "🧑‍🚀 Join Worker Nodes"
-        hosts: workers
-        become: true
-        gather_facts: true
-        tasks:
-          - name: "Include Kubernetes Worker Setup"
-            import_role:
-              name: kubernetes
-              tasks_from: worker.yml
-            tags: [kubernetes, worker]
+# 🧑‍🚀 Join Worker Nodes
+- name: "🧑‍🚀 Join Worker Nodes"
+  hosts: workers
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  tasks:
+    - name: "Include Kubernetes Worker Setup"
+      import_role:
+        name: kubernetes
+        tasks_from: worker.yml
+      tags: [kubernetes, worker]
 
-      # ✅ Validate Deployment
-      - name: "✅ Validate Deployment"
-        hosts: reservations
-        become: true
-        tasks:
-          - name: "Include Kubernetes Validation Tasks"
-            import_role:
-              name: kubernetes
-              tasks_from: verify.yml
-            tags: [kubernetes, verify]
+# ✅ Validate Deployment
+- name: "✅ Validate Deployment"
+  hosts: reservations
+  become: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  tasks:
+    - name: "Include Kubernetes Validation Tasks"
+      import_role:
+        name: kubernetes
+        tasks_from: verify.yml
+      tags: [kubernetes, verify]
