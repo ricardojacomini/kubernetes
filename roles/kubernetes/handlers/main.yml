@@ -1,5 +1,5 @@
 # roles/kubernetes/handlers/main.yml
-- name: "🔄 Restart Kubelet"
+- name: "Restart Kubelet"
   block:
     - name: "📡 Gather service facts before restarting kubelet"
       ansible.builtin.service_facts:
