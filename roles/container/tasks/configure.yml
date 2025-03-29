@@ -5,10 +5,10 @@
   template:
     src: "{{ 'daemon.nvidia.json.j2' if has_nvidia | default(false) else 'daemon.docker.json.j2' }}"
     dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
   when: container_runtime == 'docker'
-  owner: root
-  group: root
-  mode: '0644'
   notify: restart docker
 
 - name: Load kernel modules (overlay, br_netfilter)
