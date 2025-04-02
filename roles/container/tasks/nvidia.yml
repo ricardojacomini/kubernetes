@@ -37,7 +37,6 @@
   dnf:
     name: nvidia-container-toolkit
     state: present
-    enablerepo: nvidia-container-toolkit
     install_weak_deps: false
     # Force the installation by overriding potential conflicts
     # This ensures the toolkit is installed and any conflicts are resolved
