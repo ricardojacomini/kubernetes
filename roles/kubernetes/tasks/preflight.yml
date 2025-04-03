@@ -154,7 +154,6 @@
   register: containerd_default_config
   tags: [kubernetes, preflight]
 
-
 - name: "📄 Apply containerd config with CRI enabled"
   copy:
     content: "{{ containerd_default_config.stdout }}"
@@ -183,4 +182,3 @@
   when: inventory_hostname in network_alias_ips
   tags: preflight
   notify: "🔄 Restart containerd"
-
