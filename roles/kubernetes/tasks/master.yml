@@ -120,11 +120,13 @@
   register: network_install
   changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
 
-- name: Validate cluster
+- name: ✅ Validate control plane is responsive
   command: kubectl get nodes
   register: kubectl_nodes
   changed_when: false
   retries: 5
   delay: 10
   until: kubectl_nodes.rc == 0
+  environment:
+    KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed

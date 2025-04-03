@@ -9,6 +9,8 @@
 - name: Validate kubectl cluster-info
   command: kubectl cluster-info
   register: cluster_info
+  environment:
+    KUBECONFIG: "{{ kubeconfig_dir }}/config"
   changed_when: false
   failed_when: cluster_info.rc != 0
   tags: verify
