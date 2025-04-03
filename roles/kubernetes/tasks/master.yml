@@ -104,15 +104,17 @@
         mode: '0600'
       when: admin_conf_file.stat.exists
 
-    - name: "🧠 Extract join command from init output"
-      set_fact:
-        kubeadm_join_cmd: "{{ kubeadm_init.stdout_lines | select('search', '^kubeadm join') | list | join(' ') }}"
+    - name: "🔑 Generate kubeadm join command"
+      command: kubeadm token create --print-join-command --ttl 30m --certificate-key $(kubeadm init phase upload-certs --upload-certs | tail -n1)
+      register: kubeadm_join_cmd
+      when: kubeadm_init is changed
 
     - name: "📝 Save kubeadm join command"
       copy:
-        content: "{{ kubeadm_join_cmd }}"
-        dest: /root/join-command.sh
+        content: "{{ kubeadm_join_cmd.stdout }}"
+        dest: "{{ kubeconfig_dir }}/join-command.sh"
         mode: '0755'
+      when: kubeadm_join_cmd.stdout is defined
 
 - name: Install Pod network
   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"

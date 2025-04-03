@@ -66,12 +66,17 @@
   changed_when: false
   tags: validation
 
+- name: "📍 Determine kubeconfig directory"
+  set_fact:
+    kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
+
+
 - name: "📥 Copy join command from master"
   fetch:
-    src: /root/join-command.sh
+    src: "{{ kubeconfig_dir }}/join-command.sh"
     dest: /tmp/join-command.sh
     flat: yes
-  delegate_to: c267
+  delegate_to: master
   run_once: true
 
 - name: "🔗 Join Kubernetes Cluster"
