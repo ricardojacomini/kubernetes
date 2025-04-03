@@ -16,7 +16,7 @@
       - kubernetes-cni-{{ versions.kubernetes_cni }}
     state: present
 
-# ✅ Ensure kubelet is ready
+# ✅ Ensure kubelet service is available before triggering any handlers
 - name: Ensure kubelet is installed
   package:
     name: kubelet
