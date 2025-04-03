@@ -171,15 +171,16 @@
     dest: /tmp/ifcfg-preview
     mode: '0644'
   check_mode: true
-  when: inventory_hostname in network_alias_ips
+  when: inventory_hostname in networking.network_alias_ips
   tags: preflight
 
 - name: "✅ Validate alias IP format"
   assert:
     that:
-      - network_alias_ips[inventory_hostname] is ipaddr
+      - networking.network_alias_ips[inventory_hostname] is ipaddr
     fail_msg: "Alias IP for {{ inventory_hostname }} is not a valid IP address"
     success_msg: "Alias IP for {{ inventory_hostname }} is valid"
-  when: inventory_hostname in network_alias_ips
+  when: inventory_hostname in networking.network_alias_ips
   tags: preflight
   notify: "🔄 Restart containerd"
+
