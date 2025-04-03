@@ -132,3 +132,19 @@
   environment:
     KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed
+
+- name: 🔐 Add user to root group for containerd access
+  user:
+    name: "{{ ansible_user }}"
+    groups: root
+    append: yes
+  become: true
+  tags: containerd
+
+- name: 🔐 Add user to root group for containerd access
+  user:
+    name: "{{ ansible_user }}"
+    groups: root
+    append: yes
+  become: true
+  tags: containerd
