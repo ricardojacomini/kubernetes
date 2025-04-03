@@ -43,7 +43,7 @@
     state: started
   when: "'kubelet.service' in ansible_facts.services"
 
-- name: "🔍 DEBUG: Confirm handler is loaded (Restart Kubelet)""
+- name: "🔍 DEBUG: Confirm handler is loaded (Restart Kubelet)"
   debug:
     msg: "Handler will trigger successfully"
   notify: Restart Kubelet
