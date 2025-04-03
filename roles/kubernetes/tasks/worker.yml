@@ -70,7 +70,6 @@
   set_fact:
     kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
 
-
 - name: "📥 Copy join command from master"
   fetch:
     src: "{{ kubeconfig_dir }}/join-command.sh"
