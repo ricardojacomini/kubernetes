@@ -4,6 +4,9 @@
   set_fact:
     k8s_version: "{{ versions.kubernetes }}"
 
+- name: Include cluster configuration
+  include_vars: "{{ role_path }}/../../group_vars/k8s-cluster.yml"
+
 - name: Print Kubernetes version
   debug:
     msg: "Using Kubernetes version: {{ k8s_version }}"
@@ -63,13 +66,20 @@
   changed_when: false
   tags: validation
 
+- name: "📥 Copy join command from master"
+  fetch:
+    src: /root/join-command.sh
+    dest: /tmp/join-command.sh
+    flat: yes
+  delegate_to: c267
+  run_once: true
+
 - name: "🔗 Join Kubernetes Cluster"
-  command: "{{ lookup('file', '/tmp/join-command.sh') }}"
+  command: "sh /tmp/join-command.sh"
   args:
     creates: /etc/kubernetes/kubelet.conf
   environment:
     KUBELET_EXTRA_ARGS: "--node-ip={{ ansible_default_ipv4.address }}"
-  when: inventory_hostname in groups['workers']
 
 - name: Configure containerd for Kubernetes
   template:

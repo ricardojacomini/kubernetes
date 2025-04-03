@@ -107,14 +107,12 @@
     - name: "🧠 Extract join command from init output"
       set_fact:
         kubeadm_join_cmd: "{{ kubeadm_init.stdout_lines | select('search', '^kubeadm join') | list | join(' ') }}"
-      when: kubeadm_init.stdout_lines is defined
 
     - name: "📝 Save kubeadm join command"
       copy:
         content: "{{ kubeadm_join_cmd }}"
         dest: /root/join-command.sh
         mode: '0755'
-      when: kubeadm_join_cmd != ''
 
 - name: Install Pod network
   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
