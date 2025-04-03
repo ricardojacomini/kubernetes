@@ -33,6 +33,10 @@
   command: systemctl daemon-reexec
   changed_when: false
 
+- name: Reload systemd
+  command: systemctl daemon-reload
+  changed_when: false
+
 - name: Gather service facts
   service_facts:
 
@@ -46,7 +50,7 @@
 - name: "🔍 DEBUG: Confirm handler is loaded (Restart Kubelet)"
   debug:
     msg: "Handler will trigger successfully"
-  notify: Restart Kubelet
+  notify: "Restart Kubelet"
 
 - name: "🔄 Configure kubelet"
   template:

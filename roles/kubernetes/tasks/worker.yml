@@ -1,6 +1,5 @@
 # roles/kubernetes/tasks/worker.yml
 ---
-
 - name: Set local Kubernetes version
   set_fact:
     k8s_version: "{{ versions.kubernetes }}"
@@ -44,7 +43,7 @@
 - name: "🔍 DEBUG: Confirm handler is loaded (Restart Kubelet)"
   debug:
     msg: "Handler will trigger successfully"
-  notify: Restart Kubelet
+  notify: "Restart Kubelet"
 
 - name: "🔄 Configure kubelet"
   template:
@@ -53,7 +52,7 @@
     owner: root
     group: root
     mode: 0644
-  notify: Restart Kubelet
+  notify: "Restart Kubelet"
 
 - name: "🔍 Verify Network Range Availability (Worker)"
   shell: |
