@@ -13,7 +13,10 @@ networking:
       end: "192.168.1.254"
   service_network:
     cidr: "192.168.2.0/24"
-    dns_ip: "{{ (service_network.cidr|ipaddr('network'))|ipaddr('+10') }}"  # CoreDNS IP
+    # dns_ip: "{{ (service_network.cidr|ipaddr('network'))|ipaddr('+10') }}"  # CoreDNS IP
+    dns_ip: "{{ (networking.service_network.cidr | ipaddr('network')) | ipaddr('+10') }}"
+
+
 
   dns:
     servers:
