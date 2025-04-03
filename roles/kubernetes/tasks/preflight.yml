@@ -179,4 +179,4 @@
     success_msg: "Alias IP for {{ inventory_hostname }} is valid"
   when: inventory_hostname in network_alias_ips
   tags: preflight
-- name: "🔄 Restart containerd"
+  notify: "🔄 Restart containerd"
