@@ -9,6 +9,9 @@
         else ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-common']
       }}
 
+- name: "📥 Load Kubernetes cluster network settings"
+  include_vars: "{{ role_path }}/../../group_vars/k8s-cluster.yml"      
+
 - name: "🛡️ Base System Checks"
   block:
     # Hardware requirements
