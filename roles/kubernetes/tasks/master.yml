@@ -69,73 +69,58 @@
   args:
     creates: /etc/kubernetes/admin.conf
 
-- name: Determine kubeconfig directory
-  set_fact:
-    kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
-
-- name: Get primary group of the user
-  command: id -gn {{ ansible_user }}
-  register: user_primary_group
-  changed_when: false
-
-- name: Ensure .kube directory exists
-  file:
-    path: "{{ kubeconfig_dir }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ user_primary_group.stdout }}"
-    mode: 0755
-
-- name: Copy admin.conf to kubeconfig
-  copy:
-    remote_src: yes
-    src: /etc/kubernetes/admin.conf
-    dest: "{{ kubeconfig_dir }}/config"
-    owner: "{{ ansible_user }}"
-    group: "{{ user_primary_group.stdout }}"
-    mode: 0600
-
-- name: "📋 Save Join Command"
-  copy:
-    content: "{{ kubeadm_init.stdout_lines[-1] }}"
-    dest: /root/join-command.sh
-    mode: 0755
-  when: kubeadm_init.stdout_lines is defined and kubeadm_init.stdout_lines | length > 0
-
-- name: "🔗 Set kubectl contextr"
+- name: "🔗 Set kubectl context for cluster administration"
   block:
-    - name: "📁 Create .kube directory"
-      file:
-        path: "~{{ ansible_user }}/.kube"
-        state: directory
-        mode: 0755
 
-    - name: Check if admin.conf exists
+    - name: "📍 Determine kubeconfig directory"
+      set_fact:
+        kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
+
+    - name: "👥 Get primary group of the user"
+      command: id -gn {{ ansible_user }}
+      register: user_primary_group
+      changed_when: false
+
+    - name: "📁 Ensure .kube directory exists"
+      file:
+        path: "{{ kubeconfig_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ user_primary_group.stdout }}"
+        mode: '0755'
+
+    - name: "🔍 Check if admin.conf exists"
       stat:
         path: /etc/kubernetes/admin.conf
       register: admin_conf_file
 
-    - name: 📄 Copy Admin Config
+    - name: "📄 Copy admin.conf to user kubeconfig"
       copy:
         remote_src: yes
         src: /etc/kubernetes/admin.conf
-        dest: "{{ ansible_user_dir }}/.kube/config"
+        dest: "{{ kubeconfig_dir }}/config"
         owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: 0600
+        group: "{{ user_primary_group.stdout }}"
+        mode: '0600'
       when: admin_conf_file.stat.exists
+
+    - name: "🧠 Extract join command from init output"
+      set_fact:
+        kubeadm_join_cmd: "{{ kubeadm_init.stdout_lines | select('search', '^kubeadm join') | list | join(' ') }}"
+      when: kubeadm_init.stdout_lines is defined
+
+    - name: "📝 Save kubeadm join command"
+      copy:
+        content: "{{ kubeadm_join_cmd }}"
+        dest: /root/join-command.sh
+        mode: '0755'
+      when: kubeadm_join_cmd != ''
 
 - name: Install Pod network
   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
   when: kubeadm_init is changed
   register: network_install
   changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
-
-- name: Generate join command
-  command: kubeadm token create --print-join-command
-  register: join_command
-  changed_when: false
-
 
 - name: Validate cluster
   command: kubectl get nodes
