@@ -31,14 +31,14 @@ networking:
         networking.dns.domains|map('regex_replace','^\.','*.' )|list
       }}
 
-# Host-to-alias mapping
-network_alias_ips:
-  c267: 192.168.1.10
-  c276: 192.168.1.11
-  icgpu10: 192.168.1.12
+  # Host-to-alias mapping
+  network_alias_ips:
+    c267: 192.168.1.10
+    c276: 192.168.1.11
+    icgpu10: 192.168.1.12
 
-network_alias_interface: eno1
-network_alias_netmask: 255.255.255.0
+  network_alias_interface: eno1
+  network_alias_netmask: 255.255.255.0
 
 # Kubelet Configuration
 kubelet:
