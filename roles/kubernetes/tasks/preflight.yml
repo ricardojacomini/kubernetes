@@ -12,6 +12,8 @@
 - name: "📥 Load Kubernetes cluster settings into 'networking'"
   include_vars:
     file: "{{ role_path }}/../../group_vars/k8s-cluster.yml"
+    name: networking
+  tags: preflight
 
 - name: "🛡️ Base System Checks"
   block:
