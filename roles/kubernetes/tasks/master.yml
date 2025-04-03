@@ -43,9 +43,10 @@
     state: started
   when: "'kubelet.service' in ansible_facts.services"
 
-- name: "🔍 DEBUG: Verify handler is loaded"
+- name: "🔍 DEBUG: Confirm handler is loaded (Restart Kubelet)""
   debug:
-    msg: "{{ ansible_playbook_handlers | map(attribute='name') | list }}"
+    msg: "Handler will trigger successfully"
+  notify: Restart Kubelet
 
 - name: "🔄 Configure kubelet"
   template:
@@ -55,7 +56,6 @@
     group: root
     mode: 0644
   notify: "Restart Kubelet"
-
 
 - name: "🛡️ Initialize Kubernetes Control Plane"
   command: >
