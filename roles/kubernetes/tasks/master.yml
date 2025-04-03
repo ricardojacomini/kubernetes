@@ -55,7 +55,6 @@
     mode: 0644
   notify: "🔄 Restart Kubelet"
 
-
 - name: "🛡️ Initialize Kubernetes Control Plane"
   command: >
     kubeadm init
@@ -65,11 +64,31 @@
     --upload-certs
     --apiserver-cert-extra-sans="{{ ansible_host }}"
     --ignore-preflight-errors=Swap,SystemVerification
-
   register: kubeadm_init
   changed_when: "'Your Kubernetes control-plane has initialized' in kubeadm_init.stdout"
   args:
     creates: /etc/kubernetes/admin.conf
+
+- name: Determine kubeconfig directory
+  set_fact:
+    kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
+
+- name: Ensure .kube directory exists
+  file:
+    path: "{{ kubeconfig_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0755
+
+- name: Copy admin.conf to kubeconfig
+  copy:
+    remote_src: yes
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ kubeconfig_dir }}/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0600
 
 - name: "📋 Save Join Command"
   copy:
