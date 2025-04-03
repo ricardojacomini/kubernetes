@@ -1,4 +1,5 @@
 # roles/kubernetes/handlers/main.yml
+
 - name: "🔄 Restart Kubelet"
   block:
     - name: "📡 Gather service facts before restarting kubelet"
@@ -10,9 +11,10 @@
         state: restarted
         enabled: yes
       when: "'kubelet.service' in ansible_facts.services"
-      
-- name: restart containerd
-  ansible.builtin.systemd:
+  become: true  # 🔁 Added here to cover both tasks
+
+- name: "🔄 Restart containerd"
+  ansible.builtin.service:
     name: containerd
     state: restarted
-    enabled: yes
+  become: true
