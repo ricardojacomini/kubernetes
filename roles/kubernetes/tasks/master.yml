@@ -73,12 +73,17 @@
   set_fact:
     kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
 
+- name: Get primary group of the user
+  command: id -gn {{ ansible_user }}
+  register: user_primary_group
+  changed_when: false
+
 - name: Ensure .kube directory exists
   file:
     path: "{{ kubeconfig_dir }}"
     state: directory
     owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    group: "{{ user_primary_group.stdout }}"
     mode: 0755
 
 - name: Copy admin.conf to kubeconfig
@@ -87,7 +92,7 @@
     src: /etc/kubernetes/admin.conf
     dest: "{{ kubeconfig_dir }}/config"
     owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    group: "{{ user_primary_group.stdout }}"
     mode: 0600
 
 - name: "📋 Save Join Command"
@@ -96,7 +101,6 @@
     dest: /root/join-command.sh
     mode: 0755
   when: kubeadm_init.stdout_lines is defined and kubeadm_init.stdout_lines | length > 0
-
 
 - name: "🔗 Set kubectl contextr"
   block:
