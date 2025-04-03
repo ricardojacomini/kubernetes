@@ -78,7 +78,7 @@
   block:
     # Swap configuration
     - name: "🔄 Verify swap is disabled"
-      command: swapon --show | wc -l
+      shell: "swapon --show | wc -l"
       register: swap_status
       changed_when: false
       failed_when: swap_status.stdout != "0"

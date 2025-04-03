@@ -447,6 +447,12 @@ kubectl describe node <gpu-node> | grep -A10 'Capacity:\|Allocatable:'
 
 # Verify device plugin pods
 kubectl get pods -n kube-system | grep nvidia-device-plugin
+
+
+* Ansible errors
+# caching or stale compiled files interfering.
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
+ --flush-cache
 ```
 
 ### Quick Fixes
