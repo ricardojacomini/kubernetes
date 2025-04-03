@@ -43,6 +43,10 @@
     state: started
   when: "'kubelet.service' in ansible_facts.services"
 
+- name: "🔍 DEBUG: Verify handler is loaded"
+  debug:
+    msg: "{{ ansible_playbook_handlers | map(attribute='name') | list }}"
+
 - name: "🔄 Configure kubelet"
   template:
     src: kubelet.conf.j2
