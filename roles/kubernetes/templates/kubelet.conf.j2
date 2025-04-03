@@ -1,1 +1,3 @@
-EnvironmentFile=-/etc/sysconfig/kubelet
+# roles/kubernetes/templates/kubelet.conf.j2
+
+KUBELET_EXTRA_ARGS="{% for flag in kubelet.base_flags %}{{ flag }} {% endfor %}{% if 'gpu' in group_names %}{% for flag in kubelet.gpu_flags %}{{ flag }} {% endfor %}{% endif %}"
