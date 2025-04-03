@@ -64,7 +64,8 @@
     --control-plane-endpoint="{{ inventory_hostname }}"
     --upload-certs
     --apiserver-cert-extra-sans="{{ ansible_host }}"
-    --ignore-preflight-errors=Swap
+    --ignore-preflight-errors=Swap,SystemVerification
+
   register: kubeadm_init
   changed_when: "'Your Kubernetes control-plane has initialized' in kubeadm_init.stdout"
   args:

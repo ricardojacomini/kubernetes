@@ -145,3 +145,19 @@
   changed_when: false
   when: ansible_os_family == "RedHat"
   tags: [kubernetes, preflight]
+
+- name: "✅ Ensure containerd config enables CRI plugin"
+  command: containerd config default
+  register: containerd_default_config
+  tags: [kubernetes, preflight]
+
+
+- name: "📄 Apply containerd config with CRI enabled"
+  copy:
+    content: "{{ containerd_default_config.stdout }}"
+    dest: /etc/containerd/config.toml
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart containerd
+  tags: [kubernetes, preflight]
