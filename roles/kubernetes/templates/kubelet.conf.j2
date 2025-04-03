@@ -1,3 +1,5 @@
 # roles/kubernetes/templates/kubelet.conf.j2
 
-KUBELET_EXTRA_ARGS="{% for flag in kubelet.base_flags %}{{ flag }} {% endfor %}{% if 'gpu' in group_names %}{% for flag in kubelet.gpu_flags %}{{ flag }} {% endfor %}{% endif %}"
+{% set base = kubelet.base_flags | default([]) %}
+{% set gpu = kubelet.gpu_flags if 'gpu' in group_names else [] %}
+KUBELET_EXTRA_ARGS="{{ (base + gpu) | join(' ') }}"
