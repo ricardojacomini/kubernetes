@@ -45,6 +45,14 @@
         state: present
       tags: always
 
+    - name: "📦 Ensure tc (iproute-tc) is installed"
+      package:
+        name: iproute-tc
+        state: present
+      when: ansible_os_family == "RedHat"
+      tags: always
+
+
     # Kernel parameters (using command module)
     - name: "📝 Configure kernel sysctl parameters"
       command: sysctl -w {{ item.key }}={{ item.value }}
