@@ -72,12 +72,12 @@
 
 - name: "📥 Copy join command from master"
   fetch:
-    src: "{{ kubeconfig_dir }}/join-command.sh"
+    src: /root/.kube/join-command.sh
     dest: /tmp/join-command.sh
     flat: yes
   delegate_to: "{{ groups['master'][0] }}"
   run_once: true
-
+  
 - name: "🔗 Join Kubernetes Cluster"
   command: "sh /tmp/join-command.sh"
   args:
@@ -95,14 +95,6 @@
   wait_for:
     path: /etc/kubernetes/kubelet.conf
     timeout: 120
-
-- name: 🔐 Add user to root group for containerd access
-  user:
-    name: "{{ ansible_user }}"
-    groups: root
-    append: yes
-  become: true
-  tags: containerd
 
 - name: 🔐 Add user to root group for containerd access
   user:
