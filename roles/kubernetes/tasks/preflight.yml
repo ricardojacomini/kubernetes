@@ -181,18 +181,18 @@
   when: inventory_hostname in networking.network_alias_ips
   tags: [kubernetes, preflight]
 
-- name: "🖧 Create persistent alias IP config (Rocky-based)"
+- name: "🖧 Create persistent alias IP config (K8s alias interface)"
   template:
     src: ifcfg-k8s.j2
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networking.network_alias_interface }}:0"
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networking.network_alias_interface }}"
     mode: '0644'
     owner: root
     group: root
   when:
     - ansible_os_family == "RedHat"
     - inventory_hostname in networking.network_alias_ips
-  notify: "🔄 restart network"
-  tags: [kubernetes, preflight]
+  notify: restart network
+  tags: [kubernetes, network]
 
 - name: Verify alias IP is active
   shell: ip a show {{ networking.network_alias_interface }} | grep {{ networking.network_alias_ips[inventory_hostname] }}
