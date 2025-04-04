@@ -16,8 +16,6 @@ networking:
     # dns_ip: "{{ (service_network.cidr|ipaddr('network'))|ipaddr('+10') }}"  # CoreDNS IP
     dns_ip: "{{ (networking.service_network.cidr | ipaddr('network')) | ipaddr('+10') }}"
 
-
-
   dns:
     servers:
       - "{{ networking.service_network.dns_ip }}"  # Primary (CoreDNS)
@@ -40,7 +38,7 @@ networking:
     c276: 192.168.1.11
     icgpu10: 192.168.1.12
 
-  network_alias_interface: eno1
+  network_alias_interface: k8s
   network_alias_netmask: 255.255.255.0
 
 # Kubelet Configuration

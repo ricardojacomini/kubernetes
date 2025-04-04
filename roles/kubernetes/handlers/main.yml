@@ -18,3 +18,9 @@
     name: containerd
     state: restarted
   become: true
+
+- name: "🔄 restart network"
+  ansible.builtin.systemd:
+    name: network
+    state: restarted
+  become: true
