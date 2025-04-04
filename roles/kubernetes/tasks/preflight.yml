@@ -167,6 +167,11 @@
   notify: "🔄 Restart containerd"
   tags: [kubernetes, preflight]
 
+- name: "🧠 Compute DNS IP (if ipaddr is available)"
+  set_fact:
+    dns_ip: "{{ (networking.service_network.cidr | ipaddr('network')) | ipaddr('+10') }}"
+  when: "'ipaddr' in ansible_filters"
+
 - name: "🧪 Preview alias config content"
   template:
     src: ifcfg-k8s.j2
