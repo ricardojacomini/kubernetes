@@ -278,7 +278,7 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags nvidia --limit gpu
 
 Installs Kubernetes components (kubeadm, kubelet, kubectl):
 ```bash
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit reservations
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit reservations --check
 ```
 
 ### 6. Master Initialization (First Run Only)

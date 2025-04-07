@@ -15,7 +15,8 @@ networking:
     cidr: "192.168.2.0/24"
     # dns_ip: "{{ (service_network.cidr|ipaddr('network'))|ipaddr('+10') }}"  # CoreDNS IP
     # dns_ip: "{{ (networking.service_network.cidr | ipaddr('network')) | ipaddr('+10') }}"
-    dns_ip: "192.168.2.10"
+    # dns_ip: "192.168.2.10"
+    dns_ip: "{{ networking.service_network.cidr.split('.')[0:3] | join('.') ~ '.10' }}"
 
   dns:
     servers:
@@ -27,11 +28,7 @@ networking:
       - "cluster.local"
 
   proxy_settings:
-    no_proxy: >-
-      {{
-        [networking.pod_network.cidr, networking.service_network.cidr] +
-        networking.dns.domains|map('regex_replace','^\.','*.' )|list
-      }}
+    no_proxy: "{{ [networking.pod_network.cidr, networking.service_network.cidr] + networking.dns.domains | map('regex_replace', '^\\.', '*.') | list | join(',') }}"
 
   # Host-to-alias mapping
   networking:

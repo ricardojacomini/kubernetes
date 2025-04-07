@@ -172,16 +172,16 @@
     dns_ip: "{{ (networking.service_network.cidr | ipaddr('network')) | ipaddr('+10') }}"
   when: "'ipaddr' in ansible_filters"
 
-- name: "🧪 Preview alias config content"
-  template:
-    src: ifcfg-k8s.j2
-    dest: /tmp/ifcfg-preview
-    mode: '0644'
-  check_mode: true
+- name: 🧪 Preview alias config content
+  debug:
+    msg:
+      - "Cluster Name: {{ cluster_name }}"
+      - "DNS IP: {{ networking.service_network.cidr.split('.')[0:3] | join('.') ~ '.10' }}"
+      - "No Proxy: {{ [networking.pod_network.cidr, networking.service_network.cidr] + networking.dns.domains | map('regex_replace', '^\\.', '*.') | list | join(',') }}"
+      - "Network Alias IPs: {{ networking.network_alias_ips }}"
   when: inventory_hostname in networking.network_alias_ips
-  tags: [kubernetes, preflight]
 
-- name: "🖧 Create persistent alias IP config (K8s alias interface)"
+- name: "Create persistent alias IP config (K8s alias interface)"
   template:
     src: ifcfg-k8s.j2
     dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networking.network_alias_interface }}"
@@ -191,7 +191,7 @@
   when:
     - ansible_os_family == "RedHat"
     - inventory_hostname in networking.network_alias_ips
-  notify: restart network
+  notify: "🔄 restart network"
   tags: [kubernetes, network]
 
 - name: Verify alias IP is active
