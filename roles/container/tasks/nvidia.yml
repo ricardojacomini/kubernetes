@@ -3,22 +3,25 @@
 ---
 
 # NVIDIA repository setup and toolkit installation
-- name: Configure NVIDIA repository (Rocky 8/9)
-  get_url:
-    url: "https://nvidia.github.io/libnvidia-container/stable/rhel{{ ansible_distribution_major_version }}/$basearch/nvidia-container-toolkit.repo"
-    dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-    mode: '0644'
+# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#with-dnf-rhel-centos-fedora-amazon-linux
+- name: Configure NVIDIA production repository
+  shell: |
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | \
+      tee /etc/yum.repos.d/nvidia-container-toolkit.repo
   become: true
+  args:
+    warn: false
   tags: [nvidia, install]
 
-- name: Import NVIDIA GPG key
-  rpm_key:
-    key: https://nvidia.github.io/libnvidia-container/gpgkey
-    state: present
-  become: true
-  tags: [nvidia, install]
+# - name: Optionally enable NVIDIA experimental repo (can be skipped if not needed)
+#   command: dnf config-manager --enable nvidia-container-toolkit-experimental
+#   become: true
+#   register: enable_experimental
+#   failed_when: false  # Optional: avoid hard failure if the repo doesn't exist
+#   changed_when: "'enabled' in enable_experimental.stdout"
+#   tags: [nvidia, install]
 
-- name: Refresh yum cache
+- name: Refresh dnf cache
   command: dnf makecache
   become: true
   tags: [nvidia, install]
@@ -52,9 +55,15 @@
     # during the installation process.
   tags: [nvidia, install]
 
+- name: Install dnf-plugins-core
+  dnf:
+    name: dnf-plugins-core
+    state: present
+  become: true
+  tags: [nvidia, install]
+
 - name: Configure Docker for NVIDIA
   shell: |
     nvidia-ctk runtime configure --runtime=docker
   when: ansible_facts['distribution'] == 'Rocky'  # or any condition to guard it
   tags: [nvidia, install]
-
