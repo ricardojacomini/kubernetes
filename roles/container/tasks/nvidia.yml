@@ -3,15 +3,24 @@
 ---
 
 # NVIDIA repository setup and toolkit installation
-- name: Configure NVIDIA repository
-  shell: |
-    curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | tee /etc/yum.repos.d/nvidia-container-toolkit.repo
-    rpm --import https://nvidia.github.io/nvidia-container-runtime/gpgkey
-    dnf clean all && dnf makecache
+- name: Configure NVIDIA repository (Rocky 8/9)
+  get_url:
+    url: "https://nvidia.github.io/libnvidia-container/stable/rhel{{ ansible_distribution_major_version }}/$basearch/nvidia-container-toolkit.repo"
+    dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+    mode: '0644'
   become: true
-  args:
-    warn: false
-  register: nvidia_repo
+  tags: [nvidia, install]
+
+- name: Import NVIDIA GPG key
+  rpm_key:
+    key: https://nvidia.github.io/libnvidia-container/gpgkey
+    state: present
+  become: true
+  tags: [nvidia, install]
+
+- name: Refresh yum cache
+  command: dnf makecache
+  become: true
   tags: [nvidia, install]
 
 - name: Check if conflicting NVIDIA or Docker packages are installed
