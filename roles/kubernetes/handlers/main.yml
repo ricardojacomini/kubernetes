@@ -1,11 +1,11 @@
 # roles/kubernetes/handlers/main.yml
 
-- name: 📡 Gather service facts before restarting kubelet
+- name: "📡 Gather service facts before restarting kubelet"
   ansible.builtin.service_facts:
   listen: "🔄 Restart Kubelet"
   become: true
 
-- name: 🔁 Restart kubelet only if service exists
+- name: "🔁 Restart kubelet only if service exists"
   ansible.builtin.systemd:
     name: kubelet
     state: restarted
@@ -14,13 +14,13 @@
   listen: "🔄 Restart Kubelet"
   become: true
 
-- name: 🔄 Restart containerd
+- name: "🔄 Restart containerd"
   ansible.builtin.service:
     name: containerd
     state: restarted
   become: true
 
-- name: 🔄 Restart network
+- name: "🔄 Restart network"
   ansible.builtin.systemd:
     name: network
     state: restarted
