@@ -85,6 +85,18 @@
         - { key: "vm.swappiness", value: "0" }
       tags: always
 
+    - name: 📝 Configure kubelet-required kernel sysctl parameters
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+        state: present
+        reload: yes
+      loop:
+        - { key: "vm.overcommit_memory", value: "1" }
+        - { key: "kernel.panic", value: "10" }
+      tags: always
+
     # Network checks
     - name: "🌐 Verify network connectivity"
       wait_for:
