@@ -1,9 +1,11 @@
 # roles/kubernetes/tasks/preflight.yml
 ---
+vars:
+  etcd_version: "v3.5.16"
+  etcd_install_dir: "/usr/local/bin"
+
 - name: "📦 Define common packages"
-  vars:
-    etcd_version: "v3.5.16"
-    etcd_install_dir: "/usr/local/bin"
+  set_fact:
     common_packages: >-
       {{
         ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-utils']
@@ -11,46 +13,48 @@
         else ['conntrack', 'socat', 'ebtables', 'ethtool', 'ipset', 'nfs-common']
       }}
 
+# Improve etcdctl installation with checks
 - name: Check if etcdctl already installed
   stat:
     path: "{{ etcd_install_dir }}/etcdctl"
   register: etcdctl_installed
 
-- block:
-    - name: Create temporary directory for etcd download
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: etcd
-      register: etcd_tempdir
-
-    - name: Download etcd binaries
-      ansible.builtin.get_url:
-        url: "https://github.com/etcd-io/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
-        dest: "{{ etcd_tempdir.path }}/etcd.tar.gz"
-        checksum: "sha256:ACTUAL_SHA256_CHECKSUM_HERE"  # Get from etcd releases page
-        timeout: 30
-
-    - name: Extract etcd archive
-      ansible.builtin.unarchive:
-        src: "{{ etcd_tempdir.path }}/etcd.tar.gz"
-        dest: "{{ etcd_tempdir.path }}"
-        remote_src: yes
-        creates: "{{ etcd_tempdir.path }}/etcd-{{ etcd_version }}-linux-amd64/etcdctl"
-
-    - name: Install etcdctl system-wide
-      ansible.builtin.copy:
-        src: "{{ etcd_tempdir.path }}/etcd-{{ etcd_version }}-linux-amd64/etcdctl"
-        dest: "{{ etcd_install_dir }}/etcdctl"
-        owner: root
-        group: root
-        mode: '0755'
-        remote_src: yes
-
-    - name: Clean up temporary directory
-      ansible.builtin.file:
-        path: "{{ etcd_tempdir.path }}"
-        state: absent
+- name: Download etcd binaries
+  ansible.builtin.get_url:
+    url: "https://github.com/etcd-io/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+    dest: "{{ etcd_tempdir.path }}/etcd.tar.gz"
+    checksum: "sha256:8f9f3108f058b9f7a5e3a30b8a5c8f1a6c5a4b4d4e2d2b2b2b2b2b2b2b2b2b2b"  # Replace with actual checksum
+    timeout: 30
   when: not etcdctl_installed.stat.exists
+
+- name: Create temporary directory for etcd download
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: etcd
+  register: etcd_tempdir
+
+- name: Download etcd binaries
+  ansible.builtin.get_url:
+    url: "https://github.com/etcd-io/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+    dest: "{{ etcd_tempdir.path }}/etcd.tar.gz"
+    checksum: "sha256:8f9f3108f058b9f7a5e3a30b8a5c8f1a6c5a4b4d4e2d2b2b2b2b2b2b2b2b2b2b"  # Replace with actual checksum
+    timeout: 30
+
+- name: Extract etcd archive
+  ansible.builtin.unarchive:
+    src: "{{ etcd_tempdir.path }}/etcd.tar.gz"
+    dest: "{{ etcd_tempdir.path }}"
+    remote_src: yes
+    creates: "{{ etcd_tempdir.path }}/etcd-{{ etcd_version }}-linux-amd64/etcdctl"
+
+- name: Install etcdctl system-wide
+  ansible.builtin.copy:
+    src: "{{ etcd_tempdir.path }}/etcd-{{ etcd_version }}-linux-amd64/etcdctl"
+    dest: "{{ etcd_install_dir }}/etcdctl"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: yes
 
 - name: Verify etcdctl installation
   ansible.builtin.command: "etcdctl version"
@@ -60,6 +64,12 @@
 - name: Display etcdctl version
   ansible.builtin.debug:
     var: etcdctl_version.stdout_lines
+
+- name: Clean up temporary directory
+  ansible.builtin.file:
+    path: "{{ etcd_tempdir.path }}"
+    state: absent
+
 
 - name: "📥 Load Kubernetes cluster settings into 'networking'"
   include_vars:
