@@ -33,7 +33,7 @@ networking:
     no_proxy: "192.168.1.0/24,192.168.2.0/24,*.svc,*.svc.cluster.local,*.cluster.local"
 
   # Host-to-alias mapping
-  network_alias_interface: en01
+  network_alias_interface: eno1
   network_alias_ips:
     c267: 192.168.1.10
     c276: 192.168.1.11
