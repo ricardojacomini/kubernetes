@@ -510,3 +510,18 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 | MIG Partitioning| ✅          | N/A    |
 
 **Contributions welcome** for Ubuntu-specific testing and improvements!
+
+
+# Kubernetes Master Node Validation Checklist
+
+| **Check**                      | **Command**                                   | **Expected Result**    |
+|--------------------------------|-----------------------------------------------|------------------------|
+| **Kubeadm conf present**       | `ls /etc/kubernetes/admin.conf`               | ✅ exists              |
+| **kubectl works**              | `kubectl version --short`                     | ✅ OK                  |
+| **Master registered**          | `kubectl get nodes`                           | ✅ Ready               |
+| **Control plane healthy**      | `kubectl get componentstatuses`               | ✅ Healthy             |
+| **Pods in kube-system OK**     | `kubectl get pods -n kube-system`             | ✅ Running             |
+| **Flannel DaemonSet running**  | `kubectl get ds -n kube-system`               | ✅ 1/node              |
+| **Interface k8s0 live**        | `ip a show k8s0`                              | ✅ UP (with IP 192.168.1.10) |
+| **Kubelet active**             | `systemctl status kubelet`                    | ✅ active              |
+| **Join command present**       | `cat /root/.kube/join-command.sh`             | ✅ OK (valid join cmd) |
