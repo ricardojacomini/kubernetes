@@ -154,7 +154,6 @@
     --kubeconfig={{ kubeconfig_dir }}/config
   when:
     - k8s_api_ip is defined
-    - kubeadm_init is changed
 
 - name: 🔐 Add user to root group for containerd access
   user:
