@@ -164,6 +164,15 @@
     --kubeconfig={{ kubeconfig_dir }}/config
   when:
     - k8s_api_ip is defined
+    
+- name: 🛡️ Fix ownership of kubeconfig
+  file:
+    path: "{{ kubeconfig_dir }}/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+  when:
+    - k8s_api_ip is defined
 
 - name: 🔐 Add user to root group for containerd access
   user:
