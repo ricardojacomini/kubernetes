@@ -147,6 +147,15 @@
     KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed
 
+- name: Override cluster server endpoint in kubeconfig
+  command: >
+    kubectl config set-cluster kubernetes
+    --server=https://{{ k8s_api_ip }}:6443
+    --kubeconfig={{ kubeconfig_dir }}/config
+  when:
+    - k8s_api_ip is defined
+    - kubeadm_init is changed
+
 - name: 🔐 Add user to root group for containerd access
   user:
     name: "{{ ansible_user }}"
