@@ -59,9 +59,13 @@
   become: true
   command: >
     kubeadm init
+    --kubernetes-version={{ k8s_version }}
     --pod-network-cidr={{ pod_network_cidr }}
     --service-cidr={{ service_cidr }}
     --control-plane-endpoint={{ k8s_api_ip }}
+    --advertise-address={{ k8s_api_ip }}
+    --token-ttl=0
+    --token={{ k8s_token }}
     --upload-certs
     --apiserver-cert-extra-sans={{ k8s_api_ip }}
     --ignore-preflight-errors=Swap,SystemVerification
