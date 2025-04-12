@@ -31,13 +31,12 @@ networking:
     no_proxy: "{{ [networking.pod_network.cidr, networking.service_network.cidr] + networking.dns.domains | map('regex_replace', '^\\.', '*.') | list | join(',') }}"
 
   # Host-to-alias mapping
-  networking:
-    network_alias_interface: k8s
-    network_alias_ips:
-      c267: 192.168.1.10
-      c276: 192.168.1.11
-      icgpu10: 192.168.1.12
-    network_alias_netmask: 255.255.255.0
+  network_alias_interface: k8s
+  network_alias_ips:
+    c267: 192.168.1.10
+    c276: 192.168.1.11
+    icgpu10: 192.168.1.12
+  network_alias_netmask: 255.255.255.0
 
 
 # Kubelet Configuration

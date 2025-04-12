@@ -208,6 +208,11 @@ kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.c
 kubectl get nodes -o json | jq '.items[].status.allocatable'
 ```
 
+# Check Docker's Default Runtime
+```bash
+docker info | grep -i "Runtimes\|Default Runtime"
+```
+
 - Check Ansible's path resolution with:
 
 ```bash
