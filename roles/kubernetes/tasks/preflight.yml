@@ -192,10 +192,8 @@
     network_alias_interface: "{{ networking.network_alias_interface }}"
     network_alias_ips: "{{ networking.network_alias_ips }}"
     network_alias_netmask: "{{ networking.network_alias_netmask }}"
-  when:
-    - networking is defined
-    - networking.network_alias_ips is defined
-    - inventory_hostname in network_alias_ips
+  when: networking is defined
+
   tags: [kubernetes, preflight]
 
 - name: "Create persistent alias IP config (K8s alias interface)"
