@@ -63,7 +63,7 @@
     --pod-network-cidr={{ pod_network_cidr }}
     --service-cidr={{ service_cidr }}
     --control-plane-endpoint={{ k8s_api_ip }}
-    --advertise-address={{ k8s_api_ip }}
+    --apiserver-advertise-address={{ k8s_api_ip }}
     --token-ttl=0
     --upload-certs
     --apiserver-cert-extra-sans={{ k8s_api_ip }}
