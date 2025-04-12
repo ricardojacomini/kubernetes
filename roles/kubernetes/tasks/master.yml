@@ -105,15 +105,14 @@
         - k8s_api_ip is defined
         - admin_conf_file.stat.exists
 
-    - name: "📄 Copy admin.conf to user kubeconfig"
-      copy:
-        remote_src: yes
-        src: /etc/kubernetes/admin.conf
-        dest: "{{ kubeconfig_dir }}/config"
-        owner: "{{ ansible_user }}"
-        group: "{{ user_primary_group.stdout }}"
-        mode: '0600'
-      when: admin_conf_file.stat.exists
+    - name: "🛠️ Replace server in user kubeconfig"
+      command: >
+        kubectl config set-cluster kubernetes
+        --server=https://{{ k8s_api_ip }}:6443
+        --kubeconfig={{ kubeconfig_dir }}/config
+      when:
+        - k8s_api_ip is defined
+        - admin_conf_file.stat.exists
 
     - name: "🔑 Generate kubeadm join command"
       command: kubeadm token create --print-join-command --ttl 30m --certificate-key $(kubeadm init phase upload-certs --upload-certs | tail -n1)
@@ -156,7 +155,7 @@
     KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed
 
-- name: Override kubeconfig server to use control plane IP
+- name: 📁 Override server in user kubeconfig
   command: >
     kubectl config set-cluster kubernetes
     --server=https://{{ k8s_api_ip }}:6443

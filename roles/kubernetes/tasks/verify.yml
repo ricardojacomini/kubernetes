@@ -11,15 +11,6 @@
     state: started
   tags: verify
 
-- name: Force override cluster server endpoint in kubeconfig (verify)
-  command: >
-    kubectl config set-cluster kubernetes
-    --server=https://{{ k8s_api_ip }}:6443
-    --kubeconfig={{ kubeconfig_dir }}/config
-  when:
-    - k8s_api_ip is defined
-  tags: [verify]
-
 - name: Validate kubectl cluster-info
   command: kubectl cluster-info
   register: cluster_info
