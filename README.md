@@ -509,9 +509,6 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 | Kubernetes      | ✅          | ⚠️     |
 | MIG Partitioning| ✅          | N/A    |
 
-**Contributions welcome** for Ubuntu-specific testing and improvements!
-
-
 # Kubernetes Master Node Validation Checklist
 
 | **Check**                      | **Command**                                   | **Expected Result**    |
@@ -525,3 +522,5 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 | **Interface k8s0 live**        | `ip a show k8s0`                              | ✅ UP (with IP 192.168.1.10) |
 | **Kubelet active**             | `systemctl status kubelet`                    | ✅ active              |
 | **Join command present**       | `cat /root/.kube/join-command.sh`             | ✅ OK (valid join cmd) |
+
+**Contributions welcome** for Ubuntu-specific testing and improvements!
