@@ -162,6 +162,28 @@
 #   register: network_install
 #   changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
 
+- name: 📝 Create fallback ClusterRoleBinding manifest for kubernetes-admin
+  copy:
+    dest: /etc/kubernetes/admin-clusterrolebinding.yaml
+    content: |
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: kubernetes-admin
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+      - kind: User
+        name: kubernetes-admin
+        apiGroup: rbac.authorization.k8s.io
+    owner: root
+    group: root
+    mode: '0644'
+  tags: [kubernetes, admin, recovery]
+  when: kubeadm_init is changed
+
 - name: ✅ Validate control plane is responsive
   command: kubectl get nodes
   register: kubectl_nodes
