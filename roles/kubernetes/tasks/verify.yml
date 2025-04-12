@@ -1,5 +1,10 @@
 # roles/kubernetes/tasks/verify.yml
 
+- name: Set kubeconfig path
+  set_fact:
+    kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
+  tags: verify
+
 - name: Check kubelet status
   ansible.builtin.service:
     name: kubelet
