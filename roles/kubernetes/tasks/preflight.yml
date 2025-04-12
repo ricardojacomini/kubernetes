@@ -20,6 +20,7 @@
     var: networking
   tags: preflight
 
+
 - name: "🛡️ Base System Checks"
   block:
     # Hardware requirements
@@ -191,7 +192,10 @@
     network_alias_interface: "{{ networking.network_alias_interface }}"
     network_alias_ips: "{{ networking.network_alias_ips }}"
     network_alias_netmask: "{{ networking.network_alias_netmask }}"
-  when: inventory_hostname in networking.network_alias_ips
+  when:
+    - networking is defined
+    - networking.network_alias_ips is defined
+    - inventory_hostname in networking.network_alias_ips
   tags: [kubernetes, preflight]
 
 - name: "Create persistent alias IP config (K8s alias interface)"
