@@ -175,14 +175,14 @@
       }}
   tags: [kubernetes, preflight]  
 
-- name: "📄 Apply containerd config with CRI enabled"
+- name: 📄 Apply containerd config with patched CRI sandbox image
   copy:
-    content: "{{ containerd_default_config.stdout }}"
+    content: "{{ containerd_patched_config }}"
     dest: /etc/containerd/config.toml
     owner: root
     group: root
     mode: 0644
-  notify: "🔄 Restart containerd"
+  notify: 🔄 Restart containerd
   tags: [kubernetes, preflight]
 
 - name: "🧠 Compute DNS IP (if ipaddr is available)"
