@@ -205,8 +205,6 @@
   notify: "🔄 restart network"
   tags: [kubernetes, network]
 
-
-
 - name: Verify alias IP is active
   shell: ip a show {{ networking.network_alias_interface }} | grep {{ networking.network_alias_ips[inventory_hostname] }}
   register: alias_check
