@@ -169,7 +169,7 @@
   file:
     path: "{{ kubeconfig_dir }}/config"
     owner: "{{ ansible_user }}"
-    group: root
+    group: "{{ user_primary_group.stdout }}"
     mode: '0600'
   when:
     - k8s_api_ip is defined

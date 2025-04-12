@@ -467,6 +467,15 @@ ansible-playbook playbooks/site.yml --flush-cache
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
 ```
 
+# Check k8s service
+
+```bash
+journalctl -u kubelet -n 50 --no-pager
+ls -l /var/lib/kubelet/config.yaml
+ls -l /etc/kubernetes/kubelet.conf
+```
+
+
 ### Quick Fixes
 | Symptom | Solution |
 |---------|----------|
