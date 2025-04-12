@@ -96,6 +96,15 @@
         path: /etc/kubernetes/admin.conf
       register: admin_conf_file
 
+    - name: "🛠️ Replace server address in admin.conf with control plane IP"
+      command: >
+        kubectl config set-cluster kubernetes
+        --server=https://{{ k8s_api_ip }}:6443
+        --kubeconfig=/etc/kubernetes/admin.conf
+      when:
+        - k8s_api_ip is defined
+        - admin_conf_file.stat.exists
+
     - name: "📄 Copy admin.conf to user kubeconfig"
       copy:
         remote_src: yes
