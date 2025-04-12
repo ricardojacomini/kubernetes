@@ -19,7 +19,7 @@
     state: restarted
   become: true
 
-- name: "🔄 restart network"
+- name: "🔄 Restart network"
   ansible.builtin.systemd:
     name: network
     state: restarted

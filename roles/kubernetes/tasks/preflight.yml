@@ -207,16 +207,25 @@
     - network_alias_interface is defined
     - network_alias_ips is defined
     - inventory_hostname in network_alias_ips
-  notify: "🔄 restart network"
+ # notify: "🔄 Restart network"
   tags: [kubernetes, network]
 
 - name: Bring up alias IP
-  command: "ifup {{ alias_base_interface }}:0"
-  when: ansible_os_family == "RedHat"
+  command: "ifup {{ network_alias_interface }}:0"
+  when:
+    - ansible_os_family == "RedHat"
+    - network_alias_interface is defined
+    - network_alias_ips is defined
+    - inventory_hostname in network_alias_ips
+  tags: [kubernetes, network]
 
 - name: Verify alias IP is active
-  shell: ip a show {{ networking.network_alias_interface }} | grep {{ networking.network_alias_ips[inventory_hostname] }}
+  shell: ip a show {{ network_alias_interface }}:0 | grep {{ network_alias_ips[inventory_hostname] }}
   register: alias_check
   changed_when: false
   failed_when: alias_check.rc != 0
+  when:
+    - network_alias_interface is defined
+    - network_alias_ips is defined
+    - inventory_hostname in network_alias_ips
   tags: [kubernetes, preflight]
