@@ -195,6 +195,7 @@
   when:
     - networking is defined
     - networking.network_alias_ips is defined
+    - inventory_hostname in network_alias_ips
   tags: [kubernetes, preflight]
 
 - name: "Create persistent alias IP config (K8s alias interface)"
@@ -206,7 +207,6 @@
     group: root
   when:
     - ansible_os_family == "RedHat"
-    - inventory_hostname in network_alias_ips
   notify: "🔄 restart network"
   tags: [kubernetes, network]
 
