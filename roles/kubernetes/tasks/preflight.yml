@@ -273,3 +273,8 @@
     - inventory_hostname in network_alias_ips
   tags: [kubernetes, preflight]
 
+- name: "📡 Set Kubernetes API IP to MACVLAN address"
+  set_fact:
+    k8s_api_ip: "{{ network_alias_ips[inventory_hostname] }}"
+  when: inventory_hostname in network_alias_ips
+  tags: [kubernetes]
