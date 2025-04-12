@@ -135,11 +135,25 @@
 
     - name: 📦 Deploy Flannel CNI from local file
       command: kubectl apply -f /opt/k8s/manifests/kube-flannel.yml
-      when: flannel_manifest.stat.exists
+      when:
+        - kubeadm_init is changed               # ✅ Only applies Flannel on fresh control plane init
+        - flannel_manifest.stat.exists          # ✅ Ensures the file actually exists
       environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+        KUBECONFIG: /etc/kubernetes/admin.conf  # ✅ Uses correct kubeconfig for root/admin context
       tags: [kubernetes, flannel, cni]
-    
+
+    - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+      command: >
+        kubectl create clusterrolebinding kubernetes-admin-binding
+        --clusterrole=cluster-admin
+        --user=kubernetes-admin
+      register: admin_binding
+      failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
+      changed_when: "'created' in admin_binding.stdout"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_dir }}/config"
+
+
 # - name: Install Pod network
 #   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
 #   when: kubeadm_init is changed
