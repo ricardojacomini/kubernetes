@@ -116,11 +116,23 @@
         mode: '0755'
       when: kubeadm_join_cmd.stdout is defined
 
-- name: Install Pod network
-  command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
-  when: kubeadm_init is changed
-  register: network_install
-  changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
+    - name: "Check if Flannel manifest exists"
+      stat:
+        path: /opt/k8s/manifests/kube-flannel.yml
+      register: flannel_manifest
+
+    - name: 📦 Deploy Flannel CNI from local file
+      command: kubectl apply -f /opt/k8s/manifests/kube-flannel.yml
+      when: flannel_manifest.stat.exists
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      tags: [kubernetes, flannel, cni]
+    
+# - name: Install Pod network
+#   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
+#   when: kubeadm_init is changed
+#   register: network_install
+#   changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
 
 - name: ✅ Validate control plane is responsive
   command: kubectl get nodes
@@ -141,10 +153,3 @@
   become: true
   tags: containerd
 
-- name: 🔐 Add user to root group for containerd access
-  user:
-    name: "{{ ansible_user }}"
-    groups: root
-    append: yes
-  become: true
-  tags: containerd
