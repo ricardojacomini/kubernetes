@@ -91,7 +91,7 @@ docker:
     #bip: "{{ (networking.pod_network.cidr|ipaddr('first_usable'))|ipaddr('+1')|ipaddr('net') }}"
     bip: "192.168.1.1/24"
     mtu: null
-    no_proxy: "{{ networking.proxy_settings.no_proxy }}"
+    no_proxy: "192.168.1.0/24,192.168.2.0/24,*.svc,*.svc.cluster.local,*.cluster.local"
   storage:
     driver: "overlay2"
     opts: []
