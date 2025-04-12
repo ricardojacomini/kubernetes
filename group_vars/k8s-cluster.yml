@@ -138,3 +138,5 @@ k8s_repos:
     gpg_key: "file:///opt/pki/kubernetes-key.gpg"
     repo_url: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] file:///opt/repos/kubernetes /"
 
+# Dynamically resolve the advertised Kubernetes API IP for the control plane
+k8s_api_ip: "{{ networking.network_alias_ips[inventory_hostname] }}"
