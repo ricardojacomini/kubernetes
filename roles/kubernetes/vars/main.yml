@@ -110,7 +110,8 @@ network_plugins:
       - "ipset"
       - "iptables"
 
-containerd_config:
+containerd_config: |
   version = 2
+
   [plugins."io.containerd.grpc.v1.cri"]
-    sandbox_image = "registry.k8s.io/pause:3.8"
+  sandbox_image = "registry.k8s.io/pause:3.8"
