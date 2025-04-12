@@ -44,7 +44,6 @@ networking:
 # Kubelet Configuration
 kubelet:
   base_flags:
-    - "--container-runtime=remote"
     - "--container-runtime-endpoint=unix:///run/containerd/containerd.sock"
     - "--node-ip=$(hostname -I | awk '{print $1}')"
     - "--read-only-port=0"

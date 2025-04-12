@@ -52,7 +52,6 @@ cri_socket: "/run/containerd/containerd.sock"
 # System Configuration
 kubelet_flags:
   - "--container-runtime=remote"
-  - "--container-runtime-endpoint=unix://{{ cri_socket }}"
   - "--node-ip=$(hostname -I | awk '{print $1}')"
 
 # Addon Configuration
