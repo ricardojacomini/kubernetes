@@ -195,20 +195,55 @@
 
   tags: [kubernetes, preflight]
 
-- name: "Create persistent alias IP config (K8s alias interface)"
-  template:
-    src: ifcfg-k8s.j2
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ network_alias_interface }}"
-    mode: '0644'
-    owner: root
-    group: root
+- name: "Create virtual MACVLAN interface k8s0 bound to {{ network_alias_interface }}"
+  become: true
+  command: ip link add k8s0 link {{ network_alias_interface }} type macvlan mode bridge
+  args:
+    warn: false
+  register: create_k8s0_result
+  changed_when: "'File exists' not in create_k8s0_result.stderr"
+  failed_when: create_k8s0_result.rc != 0 and 'File exists' not in create_k8s0_result.stderr
   when:
     - ansible_os_family == "RedHat"
     - network_alias_interface is defined
-    - network_alias_ips is defined
     - inventory_hostname in network_alias_ips
- # notify: "🔄 Restart network"
   tags: [kubernetes, network]
+
+- name: "Assign static IP to k8s0"
+  become: true
+  command: ip addr add {{ network_alias_ips[inventory_hostname] }}/{{ network_alias_netmask | default('24') }} dev k8s0
+  args:
+    warn: false
+  register: assign_ip_result
+  changed_when: "'File exists' not in assign_ip_result.stderr"
+  failed_when: assign_ip_result.rc != 0 and 'exists' not in assign_ip_result.stderr
+  when:
+    - ansible_os_family == "RedHat"
+    - inventory_hostname in network_alias_ips
+  tags: [kubernetes, network]
+
+- name: "Bring up k8s0"
+  become: true
+  command: ip link set k8s0 up
+  when:
+    - ansible_os_family == "RedHat"
+  tags: [kubernetes, network]
+
+
+# - name: "Create persistent alias IP config (K8s alias interface)"
+#   template:
+#     src: ifcfg-k8s.j2
+#     dest: "/etc/sysconfig/network-scripts/ifcfg-{{ network_alias_interface }}"
+#     mode: '0644'
+#     owner: root
+#     group: root
+#   when:
+#     - ansible_os_family == "RedHat"
+#     - network_alias_interface is defined
+#     - network_alias_ips is defined
+#     - inventory_hostname in network_alias_ips
+#  # notify: "🔄 Restart network"
+#   tags: [kubernetes, network]
 
 - name: Bring up alias IP
   command: "ifup {{ network_alias_interface }}:0"
