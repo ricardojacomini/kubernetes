@@ -15,6 +15,11 @@
     name: networking
   tags: preflight
 
+- name: ✅ Debug networking keys
+  debug:
+    var: networking
+  tags: preflight
+
 - name: "🛡️ Base System Checks"
   block:
     # Hardware requirements
