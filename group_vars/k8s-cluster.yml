@@ -45,7 +45,8 @@ networking:
 kubelet:
   base_flags:
     - "--container-runtime-endpoint=unix:///run/containerd/containerd.sock"
-    - "--node-ip=$(hostname -I | awk '{print $1}')"
+    - "--node-ip={{ ansible_default_ipv4.address }}"
+    #- "--node-ip=$(hostname -I | awk '{print $1}')"
     - "--read-only-port=0"
     - "--protect-kernel-defaults=true"
 
