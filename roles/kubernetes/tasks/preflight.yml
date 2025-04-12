@@ -192,12 +192,16 @@
     network_alias_ips: "{{ networking.network_alias_ips }}"
     network_alias_netmask: "{{ networking.network_alias_netmask }}"
   when: networking is defined
-
   tags: [kubernetes, preflight]
 
-- name: "Create virtual MACVLAN interface k8s0 bound to {{ network_alias_interface }}"
+- name: Set MACVLAN interface name
+  set_fact:
+    k8s_macvlan_interface: "k8s0"
+  tags: [kubernetes, preflight]
+
+- name: Create virtual MACVLAN interface {{ k8s_macvlan_interface }} bound to {{ network_alias_interface }}
   become: true
-  command: ip link add k8s0 link {{ network_alias_interface }} type macvlan mode bridge
+  command: ip link add {{ k8s_macvlan_interface }} link {{ network_alias_interface }} type macvlan mode bridge
   args:
     warn: false
   register: create_k8s0_result
@@ -209,9 +213,9 @@
     - inventory_hostname in network_alias_ips
   tags: [kubernetes, network]
 
-- name: "Assign static IP to k8s0"
+- name: Assign static IP to {{ k8s_macvlan_interface }}
   become: true
-  command: ip addr add {{ network_alias_ips[inventory_hostname] }}/{{ network_alias_netmask | default('24') }} dev k8s0
+  command: ip addr add {{ network_alias_ips[inventory_hostname] }}/{{ network_alias_netmask | default('24') }} dev {{ k8s_macvlan_interface }}
   args:
     warn: false
   register: assign_ip_result
@@ -222,12 +226,15 @@
     - inventory_hostname in network_alias_ips
   tags: [kubernetes, network]
 
-- name: "Bring up k8s0"
-  become: true
-  command: ip link set k8s0 up
-  when:
-    - ansible_os_family == "RedHat"
-  tags: [kubernetes, network]
+
+
+
+# - name: "Bring up k8s0"
+#   become: true
+#   command: ip link set k8s0 up
+#   when:
+#     - ansible_os_family == "RedHat"
+#   tags: [kubernetes, network]
 
 
 # - name: "Create persistent alias IP config (K8s alias interface)"
@@ -245,22 +252,24 @@
 #  # notify: "🔄 Restart network"
 #   tags: [kubernetes, network]
 
-- name: Bring up alias IP
-  command: "ifup {{ network_alias_interface }}:0"
-  when:
+- name: Bring up {{ k8s_macvlan_interface }}
+  become: true
+  command: ip link set {{ k8s_macvlan_interface }} up
+  when: 
     - ansible_os_family == "RedHat"
+    - k8s_macvlan_interface is defined
     - network_alias_interface is defined
     - network_alias_ips is defined
     - inventory_hostname in network_alias_ips
   tags: [kubernetes, network]
 
-- name: Verify alias IP is active
-  shell: ip a show {{ network_alias_interface }}:0 | grep {{ network_alias_ips[inventory_hostname] }}
+- name: Verify {{ k8s_macvlan_interface }} IP is active
+  shell: ip a show {{ k8s_macvlan_interface }} | grep {{ network_alias_ips[inventory_hostname] }}
   register: alias_check
   changed_when: false
   failed_when: alias_check.rc != 0
   when:
-    - network_alias_interface is defined
-    - network_alias_ips is defined
+    - k8s_macvlan_interface is defined
     - inventory_hostname in network_alias_ips
   tags: [kubernetes, preflight]
+
