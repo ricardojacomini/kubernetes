@@ -147,7 +147,7 @@
     KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed
 
-- name: Override cluster server endpoint in kubeconfig
+- name: Override kubeconfig server to use control plane IP
   command: >
     kubectl config set-cluster kubernetes
     --server=https://{{ k8s_api_ip }}:6443
