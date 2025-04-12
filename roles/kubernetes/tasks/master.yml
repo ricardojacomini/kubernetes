@@ -167,8 +167,10 @@
       changed_when: "'created' in admin_binding.stdout" or "'AlreadyExists' in admin_binding.stderr"
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
-      when: kubeadm_init is changed
-            - flannel_ready is defined and flannel_ready.rc == 0
+      when: >
+        kubeadm_init is changed and
+        flannel_ready is defined and 
+        flannel_ready.rc == 0
       tags: [kubernetes, admin]
 
 # - name: Install Pod network
