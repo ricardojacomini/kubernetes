@@ -208,6 +208,12 @@ kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.c
 kubectl get nodes -o json | jq '.items[].status.allocatable'
 ```
 
+# to confirm which hosts are included in a group
+
+```bash
+ansible master --list-hosts -i inventory.ini
+```
+
 # Check Docker's Default Runtime
 ```bash
 docker info | grep -i "Runtimes\|Default Runtime"
