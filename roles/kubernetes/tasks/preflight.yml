@@ -175,12 +175,12 @@
 #       }}
 #   tags: [kubernetes, preflight]  
 
-- name: Deploy containerd config
-  template:
-    src: containerd.toml.j2
-    dest: /etc/containerd/config.toml
-  notify: 🔄 Restart containerd
-  tags: [kubernetes, preflight]
+# - name: Deploy containerd config
+#   template:
+#     src: containerd.toml.j2
+#     dest: /etc/containerd/config.toml
+#   notify: 🔄 Restart containerd
+#   tags: [kubernetes, preflight]
 
 - name: 📄 Apply containerd config with patched CRI sandbox image
   copy:
