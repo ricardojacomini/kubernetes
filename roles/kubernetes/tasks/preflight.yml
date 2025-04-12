@@ -210,6 +210,10 @@
   notify: "🔄 restart network"
   tags: [kubernetes, network]
 
+- name: Bring up alias IP
+  command: "ifup {{ alias_base_interface }}:0"
+  when: ansible_os_family == "RedHat"
+
 - name: Verify alias IP is active
   shell: ip a show {{ networking.network_alias_interface }} | grep {{ networking.network_alias_ips[inventory_hostname] }}
   register: alias_check
