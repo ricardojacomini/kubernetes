@@ -29,7 +29,8 @@ networking:
       - "cluster.local"
 
   proxy_settings:
-    no_proxy: "{{ [networking.pod_network.cidr, networking.service_network.cidr] + networking.dns.domains | map('regex_replace', '^\\.', '*.') | list | join(',') }}"
+  #  no_proxy: "{{ [networking.pod_network.cidr, networking.service_network.cidr] + networking.dns.domains | map('regex_replace', '^\\.', '*.') | list | join(',') }}"
+    no_proxy: "192.168.1.0/24,192.168.2.0/24,*.svc,*.svc.cluster.local,*.cluster.local"
 
   # Host-to-alias mapping
   network_alias_interface: k8s
