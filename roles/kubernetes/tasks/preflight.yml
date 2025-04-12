@@ -205,6 +205,9 @@
     group: root
   when:
     - ansible_os_family == "RedHat"
+    - network_alias_interface is defined
+    - network_alias_ips is defined
+    - inventory_hostname in network_alias_ips
   notify: "🔄 restart network"
   tags: [kubernetes, network]
 
