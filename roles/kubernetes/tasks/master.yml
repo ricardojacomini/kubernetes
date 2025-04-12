@@ -142,6 +142,21 @@
         KUBECONFIG: /etc/kubernetes/admin.conf  # ✅ Uses correct kubeconfig for root/admin context
       tags: [kubernetes, flannel, cni]
 
+    - name: ✅ Wait for Flannel CNI pod to be ready
+      shell: >
+        kubectl get pods -n kube-system -l app=flannel -o jsonpath='{.items[*].status.containerStatuses[*].ready}' | grep -q true
+      register: flannel_ready
+      retries: 10
+      delay: 10
+      until: flannel_ready.rc == 0
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when:
+        - kubeadm_init is changed
+        - flannel_manifest.stat.exists
+      tags: [kubernetes, flannel, cni]
+
+    # RBAC Binding via admin.conf
     - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
       command: >
         kubectl create clusterrolebinding kubernetes-admin-binding
@@ -151,8 +166,8 @@
       failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
       changed_when: "'created' in admin_binding.stdout"
       environment:
-        KUBECONFIG: "{{ kubeconfig_dir }}/config"
-
+        KUBECONFIG: /etc/kubernetes/admin.conf  # ❗ use elevated admin access here
+      tags:  [kubernetes, admin]
 
 # - name: Install Pod network
 #   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
