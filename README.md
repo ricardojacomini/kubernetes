@@ -515,7 +515,7 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 |--------------------------------|-----------------------------------------------|------------------------|
 | **Kubeadm conf present**       | `ls /etc/kubernetes/admin.conf`               | ✅ exists                                   |
 | **Master Runtime Behavior**    | `kubectl config view --minify`                | ✅ server points to `k8s_api_ip` (e.g. `192.168.1.10:6443`) |
-| **kubectl works**              | `kubectl version --short`                     | ✅ Client + Server respond                  |
+| **kubectl works**              | `kubectl version`                     | ✅ Client + Server respond                  |
 | **Master registered**          | `kubectl get nodes`                           | ✅ Master is listed and `Ready`             |
 | **Control plane healthy**      | `kubectl get componentstatuses`               | ✅ All components `Healthy`                 |
 | **Pods in kube-system OK**     | `kubectl get pods -n kube-system`             | ✅ All pods are `Running`                   |
