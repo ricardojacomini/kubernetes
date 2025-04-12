@@ -156,6 +156,22 @@
         - flannel_manifest.stat.exists
       tags: [kubernetes, flannel, cni]
 
+    # RBAC Binding via admin.conf
+    - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+      command: >
+        kubectl create clusterrolebinding kubernetes-admin-binding
+        --clusterrole=cluster-admin
+        --user=kubernetes-admin
+      register: admin_binding
+      failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
+      changed_when: "'created' in admin_binding.stdout"
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when:
+        - kubeadm_init is changed
+        - flannel_ready is defined and flannel_ready.rc == 0
+      tags: [kubernetes, admin]
+
 # - name: Install Pod network
 #   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
 #   when: kubeadm_init is changed
@@ -195,19 +211,6 @@
     KUBECONFIG: "{{ kubeconfig_dir }}/config"
   when: kubeadm_init is changed
 
-# RBAC Binding via admin.conf
-- name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
-  command: >
-    kubectl create clusterrolebinding kubernetes-admin-binding
-    --clusterrole=cluster-admin
-    --user=kubernetes-admin
-  register: admin_binding
-  failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
-  changed_when: "'created' in admin_binding.stdout"
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf  # ❗ use elevated admin access here
-  tags:  [kubernetes, admin]
-
 - name: 📁 Override server in user kubeconfig
   command: >
     kubectl config set-cluster kubernetes
@@ -232,4 +235,3 @@
     append: yes
   become: true
   tags: containerd
-
