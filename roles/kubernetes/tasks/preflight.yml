@@ -181,18 +181,31 @@
       - "Network Alias IPs: {{ networking.network_alias_ips }}"
   when: inventory_hostname in networking.network_alias_ips
 
+- name: Flatten networking settings to avoid nested Jinja
+  set_fact:
+    network_alias_interface: "{{ networking.network_alias_interface }}"
+    network_alias_ips: "{{ networking.network_alias_ips }}"
+    network_alias_netmask: "{{ networking.network_alias_netmask }}"
+  when:
+    - networking.network_alias_interface is defined
+    - networking.network_alias_ips is defined
+    - networking.network_alias_netmask is defined
+  tags: [kubernetes, preflight]
+
 - name: "Create persistent alias IP config (K8s alias interface)"
   template:
     src: ifcfg-k8s.j2
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networking.network_alias_interface }}"
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ network_alias_interface }}"
     mode: '0644'
     owner: root
     group: root
   when:
     - ansible_os_family == "RedHat"
-    - inventory_hostname in networking.network_alias_ips
+    - inventory_hostname in network_alias_ips
   notify: "🔄 restart network"
   tags: [kubernetes, network]
+
+
 
 - name: Verify alias IP is active
   shell: ip a show {{ networking.network_alias_interface }} | grep {{ networking.network_alias_ips[inventory_hostname] }}
