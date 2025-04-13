@@ -158,14 +158,22 @@
 
 - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
   block:
-    - name: 🛠️ Create ClusterRoleBinding for kubernetes-admin
+    - name: 🛠️ Check if clusterrolebinding already exists
+      command: >
+        kubectl get clusterrolebinding kubernetes-admin-binding
+        --output=name
+      register: binding_check
+      failed_when: false
+      changed_when: false
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: 🛠️ Create ClusterRoleBinding for kubernetes-admin (if needed)
       command: >
         kubectl create clusterrolebinding kubernetes-admin-binding
         --clusterrole=cluster-admin
         --user=kubernetes-admin
-      register: admin_binding
-      failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
-      changed_when: "'created' in admin_binding.stdout or 'AlreadyExists' in admin_binding.stderr"
+      when: binding_check.rc != 0
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
       tags: [kubernetes, admin]
@@ -189,16 +197,15 @@
         owner: root
         group: root
         mode: '0644'
-      when: admin_binding is failed
       tags: [kubernetes, admin, recovery]
 
     - name: 🛠️ Apply fallback ClusterRoleBinding manifest
       command: kubectl apply -f /etc/kubernetes/admin-clusterrolebinding.yaml
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
-      when: admin_binding is failed
       tags: [kubernetes, admin, recovery]
 
+      
 - name: ✅ Validate control plane is responsive
   command: kubectl get nodes
   register: kubectl_nodes

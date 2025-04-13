@@ -63,6 +63,15 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit g
 # Deploy kubernetes
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
 
+# For flannel/cni tasks:
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,flannel,cni --limit master --check
+
+# For admin/recovery tasks:
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,admin,recovery --limit master --check
+
+# Or to run everything:
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit reservations  --check
+
 # Deploy kubernetes master
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit master  --check
 
@@ -71,7 +80,6 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight
 
 # Check Docker's actual root directory
 docker info | grep "Docker Root Dir"
-
 ```
 
 # ☸️ Kubernetes Cluster Deployment with Ansible
