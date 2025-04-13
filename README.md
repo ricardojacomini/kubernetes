@@ -58,31 +58,24 @@ ansible-playbook -i inventory.ini playbooks/site.yml  --limit reservations --che
 ansible-playbook -i inventory.ini playbooks/site.yml --tags container,nvidia,install --limit reservations
 
 # Deploy GPU on node
-ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit gpu --check
+ansible-playbook -i inventory.ini playbooks/site.yml --tags container --limit gpu --check
 
-# First run the playbook with admin permissions:
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,admin --limit master --check
+# ------------  DOCKER AND K8S    ------------------
 
-# Then run your full deployment:
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,flannel,cni --limit master --check
+# Only container runtime (docker/containerd)
+ansible-playbook -i inventory.ini playbooks/site.yml --tags container --limit reservations --check
 
-# Deploy kubernetes
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
+# Only control plane
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit master --check
 
-# For flannel/cni tasks:
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,flannel,cni --limit master --check
+# Only worker nodes
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit workers --check
 
-# For admin/recovery tasks:
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,admin,recovery --limit master --check
-
-# Or to run everything:
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --limit reservations  --check
-
-# Deploy kubernetes master
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit master  --check
+# Everything
+ansible-playbook -i inventory.ini playbooks/site.yml --tags all
 
 # 🧠 Pro Tips
-ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --list-hosts --list-tasks --check
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes --list-hosts --list-tasks --check
 
 # Check Docker's actual root directory
 docker info | grep "Docker Root Dir"

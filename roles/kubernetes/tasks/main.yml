@@ -1,3 +1,4 @@
+# roles/kubernetes/tasks/main.yml
 ---
 - name: Set local Kubernetes version
   set_fact:
@@ -93,7 +94,7 @@
   tags: [kubernetes]
   when: inventory_hostname in groups['master']
 
-- name: 🔧 Configure kubectl and deploy Flannel (master only)
+- name: 🔧 Configure kubectl and deploy CNI (master only)
   block:
     - name: 📁 Set kubeconfig directory
       set_fact:
@@ -119,29 +120,10 @@
     - name: 🌐 Replace server in kubeconfig
       command: >
         kubectl config set-cluster kubernetes --server=https://{{ k8s_api_ip }}:6443 --kubeconfig={{ kubeconfig_dir }}/config
-
-    - name: 🔍 Check if Flannel manifest exists
-      stat:
-        path: /opt/k8s/manifests/kube-flannel.yml
-      register: flannel_manifest
-
-    - name: 🚦 Deploy Flannel CNI
-      command: kubectl apply -f /opt/k8s/manifests/kube-flannel.yml
-      when: flannel_manifest.stat.exists
       environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+        KUBECONFIG: "{{ kubeconfig_dir }}/config"
 
-    - name: ⏳ Wait for Flannel to become ready
-      shell: >
-        kubectl get pods -n kube-system -l app=flannel -o jsonpath='{.items[*].status.containerStatuses[*].ready}' | grep -q true
-      register: flannel_ready
-      retries: 10
-      delay: 10
-      until: flannel_ready.rc == 0
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
-
-    - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+    - name: 🛡️ Configure admin permissions
       block:
         - name: 🔍 Check for existing binding
           command: kubectl get clusterrolebinding kubernetes-admin-binding
@@ -153,13 +135,82 @@
 
         - name: 🔧 Create ClusterRoleBinding if needed
           command: >
-            kubectl create clusterrolebinding kubernetes-admin-binding --clusterrole=cluster-admin --user=kubernetes-admin
+            kubectl create clusterrolebinding kubernetes-admin-binding 
+            --clusterrole=cluster-admin 
+            --user=kubernetes-admin
           when: binding_check.rc != 0
           register: admin_binding
-          failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
+          failed_when: admin_binding.rc != 0 and 'AlreadyExists' not in admin_binding.stderr
           changed_when: "'created' in admin_binding.stdout"
           environment:
             KUBECONFIG: /etc/kubernetes/admin.conf
+
+        - name: ✅ Verify RBAC permissions
+          command: >
+            kubectl auth can-i '*' '*' --all-namespaces
+          register: rbac_check
+          retries: 5
+          delay: 5
+          until: rbac_check.rc == 0
+          environment:
+            KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: 🔍 Check if CNI manifest exists
+      stat:
+        path: /opt/k8s/manifests/kube-flannel.yml
+      register: flannel_manifest
+
+    - name: 🛠️ Prepare CNI networking
+      block:
+        - name: 🔍 Check if CNI directory exists
+          stat:
+            path: /etc/cni/net.d
+          register: cni_dir
+
+        - name: 📁 Ensure CNI directory exists
+          file:
+            path: /etc/cni/net.d
+            state: directory
+            mode: '0755'
+          when: not cni_dir.stat.exists
+
+    - name: 🚀 Deploy Flannel CNI
+      command: kubectl apply -f /opt/k8s/manifests/kube-flannel.yml
+      when: flannel_manifest.stat.exists
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: flannel_deploy
+      retries: 3
+      delay: 5
+      until: flannel_deploy.rc == 0
+
+    - name: ⏳ Wait for Flannel DaemonSet
+      command: >
+        kubectl rollout status daemonset/kube-flannel-ds -n kube-system --timeout=300s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: flannel_status
+      retries: 5
+      delay: 10
+      until: flannel_status.rc == 0
+      ignore_errors: yes
+
+    - name: 🔍 Verify Flannel pods
+      command: >
+        kubectl get pods -n kube-system -l app=flannel -o jsonpath='{.items[*].status.phase}' | grep -q Running
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: flannel_running
+      retries: 10
+      delay: 10
+      until: flannel_running.rc == 0
+
+    - name: 📝 Save join command
+      command: >
+        kubeadm token create --print-join-command > {{ kubeconfig_dir }}/join-command.sh
+      when: kubeadm_init is changed
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
 
   when: inventory_hostname in groups['master']
   tags: [kubernetes]
