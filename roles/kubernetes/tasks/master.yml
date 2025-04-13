@@ -156,8 +156,9 @@
         - flannel_manifest.stat.exists
       tags: [kubernetes, flannel, cni]
 
-    # RBAC Binding via admin.conf
-    - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+- name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+  block:
+    - name: 🛠️ Create ClusterRoleBinding for kubernetes-admin
       command: >
         kubectl create clusterrolebinding kubernetes-admin-binding
         --clusterrole=cluster-admin
@@ -167,39 +168,36 @@
       changed_when: "'created' in admin_binding.stdout or 'AlreadyExists' in admin_binding.stderr"
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
-      when: >
-        kubeadm_init is changed and
-        flannel_ready is defined and 
-        flannel_ready.rc == 0
       tags: [kubernetes, admin]
 
-# - name: Install Pod network
-#   command: kubectl apply -f "{{ network_plugins[network_plugin].manifest }}"
-#   when: kubeadm_init is changed
-#   register: network_install
-#   changed_when: "'created' in network_install.stdout or 'configured' in network_install.stdout"
+    - name: 📝 Create fallback ClusterRoleBinding manifest for kubernetes-admin
+      copy:
+        dest: /etc/kubernetes/admin-clusterrolebinding.yaml
+        content: |
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: kubernetes-admin-binding
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+          - kind: User
+            name: kubernetes-admin
+            apiGroup: rbac.authorization.k8s.io
+        owner: root
+        group: root
+        mode: '0644'
+      when: admin_binding is failed
+      tags: [kubernetes, admin, recovery]
 
-- name: 📝 Create fallback ClusterRoleBinding manifest for kubernetes-admin
-  copy:
-    dest: /etc/kubernetes/admin-clusterrolebinding.yaml
-    content: |
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
-      metadata:
-        name: kubernetes-admin
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: cluster-admin
-      subjects:
-      - kind: User
-        name: kubernetes-admin
-        apiGroup: rbac.authorization.k8s.io
-    owner: root
-    group: root
-    mode: '0644'
-  tags: [kubernetes, admin, recovery]
-  when: kubeadm_init is changed
+    - name: 🛠️ Apply fallback ClusterRoleBinding manifest
+      command: kubectl apply -f /etc/kubernetes/admin-clusterrolebinding.yaml
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when: admin_binding is failed
+      tags: [kubernetes, admin, recovery]
 
 - name: ✅ Validate control plane is responsive
   command: kubectl get nodes
