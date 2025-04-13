@@ -60,6 +60,12 @@ ansible-playbook -i inventory.ini playbooks/site.yml --tags container,nvidia,ins
 # Deploy GPU on node
 ansible-playbook -i inventory.ini playbooks/site.yml --tags containerl --limit gpu --check
 
+# First run the playbook with admin permissions:
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,admin --limit master --check
+
+# Then run your full deployment:
+ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight,flannel,cni --limit master --check
+
 # Deploy kubernetes
 ansible-playbook -i inventory.ini playbooks/site.yml --tags kubernetes,preflight --limit reservations  --check
 
