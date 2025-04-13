@@ -159,8 +159,8 @@
             kubectl create clusterrolebinding kubernetes-admin-binding --clusterrole=cluster-admin --user=kubernetes-admin
           when: binding_check.rc != 0
           register: admin_binding
-          failed_when: admin_binding.rc != 0 and 'AlreadyExists' not in admin_binding.stderr
-          changed_when: 'created' in admin_binding.stdout
+          failed_when: admin_binding.rc != 0 and "'AlreadyExists' not in admin_binding.stderr"
+          changed_when: "'created' in admin_binding.stdout"
           environment:
             KUBECONFIG: /etc/kubernetes/admin.conf
 
