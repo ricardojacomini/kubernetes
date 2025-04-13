@@ -1,31 +1,50 @@
-# playbooks/site.yml
 ---
-# 👑 Initialize Control Plane
-- name: " 🛠️ Initialize Control Plane"
+# 🐳 Container Runtime Setup (all nodes)
+- name: "🛠️ Pre-Flight Checks"
+  hosts: reservations
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/main.yml
+    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+  vars:
+    container_runtime: docker
+
+  tasks:
+    - name: "📦 Include Container Pre-Flight Checks"
+      include_role:
+        name: container
+        tasks_from: main.yml
+      tags: [container]
+
+# 🚀 Deploy Kubernetes Control Plane
+- name: "🚀 Deploy Kubernetes Control Plane"
   hosts: master
   become: true
   gather_facts: true
   vars_files:
     - ../group_vars/main.yml
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+
   tasks:
-    - name: "Include Kubernetes Master Setup"
+    - name: "☸️ Deploy Kubernetes Master Role"
       import_role:
         name: kubernetes
-        tasks_from: master.yml
+        tasks_from: main.yml
       tags: [kubernetes]
 
-# 🧑‍🚀 Join Worker Nodes
-- name: "🧑‍🚀 Join Worker Nodes"
+# 🧑‍🚀 Deploy Kubernetes Worker Nodes
+- name: "🧑‍🚀 Deploy Kubernetes Workers"
   hosts: workers
   become: true
   gather_facts: true
   vars_files:
     - ../group_vars/main.yml
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
+
   tasks:
-    - name: "Include Kubernetes Worker Setup"
+    - name: "☸️ Deploy Kubernetes Worker Role"
       import_role:
         name: kubernetes
-        tasks_from: worker.yml
+        tasks_from: main.yml
       tags: [kubernetes]
