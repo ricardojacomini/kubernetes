@@ -140,3 +140,7 @@ k8s_repos:
 
 # Dynamically resolve the advertised Kubernetes API IP for the control plane
 k8s_api_ip: "{{ networking.network_alias_ips[inventory_hostname] }}"
+
+# Etcd Configuration
+etcd_version: "v3.5.16"
+etcd_install_dir: "/usr/local/bin"

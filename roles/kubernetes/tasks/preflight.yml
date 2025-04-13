@@ -1,8 +1,6 @@
 # roles/kubernetes/tasks/preflight.yml
 ---
 - name: "📦 Define common packages"
-  etcd_version: "v3.5.16"
-  etcd_install_dir: "/usr/local/bin"
   set_fact:
     common_packages: >-
       {{
