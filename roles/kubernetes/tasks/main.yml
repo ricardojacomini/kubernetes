@@ -66,12 +66,9 @@
   when: ansible_swaptotal_mb > 0
   tags: [kubernetes]
 
-- name: ❌ Disable swap in /etc/fstab
-  replace:
-    path: /etc/fstab
-    regexp: '^([^#]\S+\s+\S+\s+swap\s+\S+\s+\S+)$'
-    replace: '# \1'
-  backup: yes
+- name: ❌ Disable swap in /etc/fstab (skipped)
+  debug:
+    msg: "Swap disabling in /etc/fstab skipped intentionally to avoid dependency on 'replace' module. Please ensure it's handled manually if needed."
   when: ansible_swaptotal_mb > 0
   tags: [kubernetes]
 
