@@ -283,14 +283,19 @@
   when: networking is defined
   tags: [kubernetes, preflight]
 
+- name: Verify networking variables are loaded
+  debug:
+    msg: "Network alias IPs: {{ networking.network_alias_ips | default('undefined') }}"
+  tags: [kubernetes, network]
+
 - name: Set MACVLAN interface name
   set_fact:
     k8s_macvlan_interface: "k8s0"
   tags: [kubernetes, preflight]
 
-- name: Create virtual MACVLAN interface {{ k8s_macvlan_interface }} bound to {{ network_alias_interface }}
+- name: Create virtual MACVLAN interface {{ k8s_macvlan_interface }} bound to {{ networking.network_alias_interface }}
   become: true
-  command: ip link add {{ k8s_macvlan_interface }} link {{ network_alias_interface }} type macvlan mode bridge
+  command: ip link add {{ k8s_macvlan_interface }} link {{ networking.network_alias_interface }} type macvlan mode bridge
   args:
     warn: false
   register: create_k8s0_result
@@ -298,13 +303,13 @@
   failed_when: create_k8s0_result.rc != 0 and 'File exists' not in create_k8s0_result.stderr
   when:
     - ansible_os_family == "RedHat"
-    - network_alias_interface is defined
-    - inventory_hostname in network_alias_ips
+    - networking.network_alias_interface is defined
+    - inventory_hostname in networking.network_alias_ips
   tags: [kubernetes, network]
 
 - name: Assign static IP to {{ k8s_macvlan_interface }}
   become: true
-  command: ip addr add {{ network_alias_ips[inventory_hostname] }}/{{ network_alias_netmask | default('24') }} dev {{ k8s_macvlan_interface }}
+  command: ip addr add {{ networking.network_alias_ips[inventory_hostname] }}/{{ networking.network_alias_netmask | default('24') }} dev {{ k8s_macvlan_interface }}
   args:
     warn: false
   register: assign_ip_result
@@ -312,9 +317,8 @@
   failed_when: assign_ip_result.rc != 0 and 'exists' not in assign_ip_result.stderr
   when:
     - ansible_os_family == "RedHat"
-    - inventory_hostname in network_alias_ips
+    - inventory_hostname in networking.network_alias_ips
   tags: [kubernetes, network]
-
 
 
 
