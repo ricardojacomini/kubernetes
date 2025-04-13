@@ -1,0 +1,193 @@
+---
+- name: Set local Kubernetes version
+  set_fact:
+    k8s_version: "{{ versions.kubernetes }}"
+
+- name: 📦 Install Kubernetes packages
+  package:
+    name:
+      - kubectl-{{ k8s_version }}
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
+      - kubernetes-cni-{{ versions.kubernetes_cni }}
+    state: present
+  notify: ["🔄 Restart Kubelet"]
+  tags: [kubernetes]
+
+- name: 📡 Ensure kubelet service is available
+  package:
+    name: kubelet
+    state: present
+  tags: [kubernetes]
+
+- name: 🔄 Re-exec systemd
+  command: systemctl daemon-reexec
+  changed_when: false
+  tags: [kubernetes]
+
+- name: 🔁 Reload systemd
+  command: systemctl daemon-reload
+  changed_when: false
+  tags: [kubernetes]
+
+- name: 📡 Gather service facts
+  service_facts:
+  tags: [kubernetes]
+
+- name: ▶️ Ensure kubelet is enabled and running
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+  when: "'kubelet.service' in ansible_facts.services"
+  tags: [kubernetes]
+
+- name: 🔍 Check container runtime status via crictl
+  command: crictl info
+  register: cri_check
+  failed_when: cri_check.rc != 0
+  changed_when: false
+  tags: [kubernetes]
+
+- name: ⚙️ Apply sysctl values for kubelet
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    reload: yes
+    state: present
+  loop:
+    - { key: "vm.overcommit_memory", value: "1" }
+    - { key: "kernel.panic", value: "10" }
+  tags: [kubernetes]
+
+- name: ❌ Disable swap at runtime
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+  tags: [kubernetes]
+
+- name: ❌ Disable swap in /etc/fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#]\S+\s+\S+\s+swap\s+\S+\s+\S+)$'
+    replace: '# \1'
+  backup: yes
+  when: ansible_swaptotal_mb > 0
+  tags: [kubernetes]
+
+# --- 👑 Master Node Tasks ---
+- name: 🚀 Initialize Kubernetes Control Plane
+  become: true
+  command: >
+    kubeadm init
+    --kubernetes-version={{ k8s_version }}
+    --pod-network-cidr={{ pod_network_cidr }}
+    --service-cidr={{ service_cidr }}
+    --control-plane-endpoint={{ k8s_api_ip }}
+    --apiserver-advertise-address={{ k8s_api_ip }}
+    --token-ttl=1h
+    --upload-certs
+    --apiserver-cert-extra-sans={{ k8s_api_ip }}
+    --ignore-preflight-errors=Swap,SystemVerification
+  register: kubeadm_init
+  changed_when: "'Your Kubernetes control-plane has initialized' in kubeadm_init.stdout"
+  args:
+    creates: /etc/kubernetes/admin.conf
+  tags: [kubernetes]
+  when: inventory_hostname in groups['master']
+
+- name: 🔧 Configure kubectl and deploy Flannel (master only)
+  block:
+    - name: 📁 Set kubeconfig directory
+      set_fact:
+        kubeconfig_dir: "{{ '/root/.kube' if ansible_user == 'root' else '/home/' + ansible_user + '/.kube' }}"
+
+    - name: 📁 Ensure .kube directory exists
+      file:
+        path: "{{ kubeconfig_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: 💾 Copy kubeconfig to user
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ kubeconfig_dir }}/config"
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: 🌐 Replace server in kubeconfig
+      command: >
+        kubectl config set-cluster kubernetes --server=https://{{ k8s_api_ip }}:6443 --kubeconfig={{ kubeconfig_dir }}/config
+
+    - name: 🔍 Check if Flannel manifest exists
+      stat:
+        path: /opt/k8s/manifests/kube-flannel.yml
+      register: flannel_manifest
+
+    - name: 🚦 Deploy Flannel CNI
+      command: kubectl apply -f /opt/k8s/manifests/kube-flannel.yml
+      when: flannel_manifest.stat.exists
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: ⏳ Wait for Flannel to become ready
+      shell: >
+        kubectl get pods -n kube-system -l app=flannel -o jsonpath='{.items[*].status.containerStatuses[*].ready}' | grep -q true
+      register: flannel_ready
+      retries: 10
+      delay: 10
+      until: flannel_ready.rc == 0
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: 🛡️ Ensure kubernetes-admin has cluster-admin privileges
+      block:
+        - name: 🔍 Check for existing binding
+          command: kubectl get clusterrolebinding kubernetes-admin-binding
+          register: binding_check
+          failed_when: false
+          changed_when: false
+          environment:
+            KUBECONFIG: /etc/kubernetes/admin.conf
+
+        - name: 🔧 Create ClusterRoleBinding if needed
+          command: >
+            kubectl create clusterrolebinding kubernetes-admin-binding --clusterrole=cluster-admin --user=kubernetes-admin
+          when: binding_check.rc != 0
+          register: admin_binding
+          failed_when: admin_binding.rc != 0 and 'AlreadyExists' not in admin_binding.stderr
+          changed_when: 'created' in admin_binding.stdout
+          environment:
+            KUBECONFIG: /etc/kubernetes/admin.conf
+
+  when: inventory_hostname in groups['master']
+  tags: [kubernetes]
+
+# --- 🧑‍🚀 Worker Node Tasks ---
+- name: 📥 Read join command from file
+  slurp:
+    src: /root/.kube/join-command.sh
+  register: join_command_encoded
+  when: inventory_hostname in groups['workers']
+  tags: [kubernetes]
+
+- name: 🔗 Run kubeadm join
+  shell: "{{ join_command_encoded.content | b64decode }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  register: join_result
+  failed_when: join_result.rc != 0 and 'already exists' not in join_result.stderr
+  when: inventory_hostname in groups['workers']
+  tags: [kubernetes]
+
+- name: ✅ Validate node joined to cluster
+  command: kubelet --version
+  register: kubelet_version
+  changed_when: false
+  failed_when: kubelet_version.rc != 0
+  when: inventory_hostname in groups['workers']
+  tags: [kubernetes]

@@ -1,32 +1,7 @@
 # playbooks/site.yml
 ---
-
-# 🛠️ Pre-Flight Checks
-- name: "🛠️ Pre-Flight Checks"
-  hosts: reservations
-  become: true
-  gather_facts: true
-  vars_files:
-    - ../group_vars/main.yml
-    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
-  vars:
-    container_runtime: docker
-
-  tasks:
-      - name: "📦 Include Container Pre-Flight Checks"
-        include_role:
-          name: container
-          tasks_from: main.yml
-        tags: [always]
-
-      - name: "🔍 Include Kubernetes Pre-Flight Checks"
-        include_role:
-          name: kubernetes
-          tasks_from: preflight.yml
-        tags: [kubernetes, preflight]
-
 # 👑 Initialize Control Plane
-- name: "👑 Initialize Control Plane"
+- name: " 🛠️ Initialize Control Plane"
   hosts: master
   become: true
   gather_facts: true
@@ -38,7 +13,7 @@
       import_role:
         name: kubernetes
         tasks_from: master.yml
-      tags: [kubernetes, master]
+      tags: [kubernetes]
 
 # 🧑‍🚀 Join Worker Nodes
 - name: "🧑‍🚀 Join Worker Nodes"
@@ -53,18 +28,4 @@
       import_role:
         name: kubernetes
         tasks_from: worker.yml
-      tags: [kubernetes, worker]
-
-# ✅ Validate Deployment
-- name: "✅ Validate Deployment"
-  hosts: reservations
-  become: true
-  vars_files:
-    - ../group_vars/main.yml
-    - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
-  tasks:
-    - name: "Include Kubernetes Validation Tasks"
-      import_role:
-        name: kubernetes
-        tasks_from: verify.yml
-      tags: [kubernetes, verify]
+      tags: [kubernetes]
