@@ -104,7 +104,7 @@
         path: "{{ kubeconfig_dir }}"
         state: directory
         owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        group: root
         mode: '0755'
 
     - name: 💾 Copy kubeconfig to user
@@ -113,7 +113,7 @@
         dest: "{{ kubeconfig_dir }}/config"
         remote_src: yes
         owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        group: root
         mode: '0600'
 
     - name: 🌐 Replace server in kubeconfig
