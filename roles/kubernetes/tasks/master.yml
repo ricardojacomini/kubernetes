@@ -190,14 +190,14 @@
         group: root
         mode: '0644'
       when: admin_binding is failed
-      tags: [kubernetes, admin, recovery]
+      tags: [kubernetes, admin]
 
     - name: 🛠️ Apply fallback ClusterRoleBinding manifest
       command: kubectl apply -f /etc/kubernetes/admin-clusterrolebinding.yaml
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
       when: admin_binding is failed
-      tags: [kubernetes, admin, recovery]
+      tags: [kubernetes, admin]
 
 - name: ✅ Validate control plane is responsive
   command: kubectl get nodes
