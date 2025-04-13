@@ -23,6 +23,7 @@
   become: true
   gather_facts: true
   vars_files:
+    - ../group_vars/k8s-cluster.yml
     - ../group_vars/main.yml
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
 
@@ -39,6 +40,7 @@
   become: true
   gather_facts: true
   vars_files:
+    - ../group_vars/k8s-cluster.yml
     - ../group_vars/main.yml
     - "../group_vars/{{ (ansible_distribution | lower).replace(' ', '_') }}.yml"
 
